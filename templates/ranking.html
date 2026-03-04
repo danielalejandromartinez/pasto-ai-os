@@ -3,127 +3,241 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pasto.AI | {{ titulo }}</title>
+    <title>THE ARENA | Pasto.AI Hub</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;500;800&display=swap');
-        body { font-family: 'Inter', sans-serif; background-color: #0f172a; color: white; }
-        .text-neon { color: #ccff00; text-shadow: 0 0 10px rgba(204, 255, 0, 0.5); }
-        .bg-neon { background-color: #ccff00; color: black; }
-        .border-neon { border-color: #ccff00; }
-        .glass { background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(10px); border-bottom: 1px solid rgba(255, 255, 255, 0.1); }
-        .player-card { transition: all 0.3s ease; }
-        .player-card:hover { transform: translateY(-5px); box-shadow: 0 10px 30px -10px rgba(204, 255, 0, 0.3); }
-        .gradient-overlay { background: linear-gradient(to top, rgba(15, 23, 42, 1) 0%, rgba(15, 23, 42, 0) 100%); }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;500;800&family=Rajdhani:wght@500;700&family=Orbitron:wght@400;900&display=swap');
+
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background-color: #050505; 
+            color: white;
+            background-image: radial-gradient(circle at 50% 0%, #1a1a1a 0%, #050505 70%);
+        }
+
+        :root {
+            --brand-color: {{ sponsor.color if sponsor.activo else '#00f2ff' }};
+            --gold-color: #ffcc00;
+            --silver-color: #e0e0e0;
+        }
+
+        .text-brand { color: var(--brand-color); text-shadow: 0 0 15px var(--brand-color); }
+        .text-gold { color: var(--gold-color); text-shadow: 0 0 10px var(--gold-color); }
+        .glass { background: rgba(10, 10, 10, 0.8); backdrop-filter: blur(15px); border-bottom: 1px solid rgba(255, 255, 255, 0.05); }
+        .sport-font { font-family: 'Rajdhani', sans-serif; text-transform: uppercase; }
+        .digital-font { font-family: 'Orbitron', sans-serif; }
         
-        /* Estilos para Brackets (Cuadros) */
-        .match-container { display: flex; flex-direction: column; gap: 20px; padding: 20px; }
-        .match-box { background: #1e293b; border: 1px solid #334155; border-radius: 10px; padding: 15px; display: flex; justify-content: space-between; align-items: center; }
-        .vs-badge { background: #ccff00; color: black; font-weight: bold; padding: 2px 8px; border-radius: 4px; font-size: 0.8rem; }
+        .leader-aura { box-shadow: 0 0 40px var(--brand-color); border: 2px solid var(--brand-color); }
+        .card-gradient { background: linear-gradient(to bottom, transparent 10%, rgba(0,0,0,0.95) 100%); }
+        .alive-photo { animation: breathe 8s infinite ease-in-out; }
+        @keyframes breathe { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.03); } }
+
+        /* Tarjetas de Reto */
+        .match-card { background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.1); transition: 0.3s; }
+        .match-confirmed { border-color: var(--brand-color); box-shadow: 0 0 20px rgba(0, 242, 255, 0.1); cursor: pointer; }
+        .match-proposed { opacity: 0.6; border-style: dashed; }
+
+        .monthly-badge { background: linear-gradient(135deg, #000 0%, #222 100%); border: 1px solid var(--gold-color); box-shadow: 0 0 15px rgba(255, 204, 0, 0.2); }
+
+        /* --- NUEVO: ESTILOS DE PESTAÑAS NEÓN --- */
+        .cat-tab {
+            padding: 10px 25px;
+            border-bottom: 3px solid transparent;
+            font-family: 'Orbitron';
+            font-size: 10px;
+            letter-spacing: 2px;
+            color: #444;
+            transition: 0.4s;
+            text-transform: uppercase;
+        }
+        .cat-tab.active {
+            color: var(--brand-color);
+            border-bottom-color: var(--brand-color);
+            text-shadow: 0 0 10px var(--brand-color);
+        }
     </style>
 </head>
-<body class="min-h-screen">
+<body class="min-h-screen pb-20">
 
     <!-- NAV -->
-    <nav class="fixed top-0 w-full z-50 glass">
-        <div class="max-w-7xl mx-auto px-4">
-            <div class="flex items-center justify-between h-16">
-                <a href="#" class="flex items-center gap-2">
-                    <i class="fa-solid fa-bolt text-neon text-xl"></i>
-                    <span class="font-bold text-xl tracking-tight">PASTO.AI</span>
-                </a>
-                <div class="text-sm font-bold text-slate-400">
-                    {{ titulo }}
+    <nav class="fixed top-0 w-full z-50 glass h-24 flex items-center px-6">
+        <div class="max-w-7xl mx-auto w-full flex items-center justify-between">
+            <div class="flex items-center gap-4">
+                <div class="h-14 w-24 rounded border border-white/10 overflow-hidden bg-black flex items-center justify-center shadow-2xl">
+                    <video autoplay loop muted playsinline class="w-full h-full object-cover">
+                        <source src="/static/logo_pasto.mp4" type="video/mp4">
+                    </video>
+                </div>
+                <div class="flex items-center gap-3 border-l border-white/10 pl-4">
+                    <img src="/static/logo_pasto.jpg" class="h-12 w-auto object-contain" alt="Logo Club">
+                    <div class="flex flex-col">
+                        <span class="font-bold text-xl sport-font tracking-tighter">THE ARENA</span>
+                        <span class="text-[10px] text-brand tracking-widest font-bold uppercase">Temporada 2026-I</span>
+                    </div>
                 </div>
             </div>
         </div>
     </nav>
 
-    <!-- CONTENIDO DINÁMICO -->
-    <div class="pt-28 pb-10 px-4 max-w-7xl mx-auto">
+    <!-- HEADER -->
+    <div class="pt-44 pb-4 text-center">
+        <h1 class="text-6xl md:text-8xl font-black sport-font text-white">WALL OF <span class="text-brand">WEALTH</span></h1>
+        <p class="text-slate-500 text-xs tracking-[0.5em] uppercase font-bold mb-8">Métrica de Calidad: 24 Mejores Resultados</p>
         
-        <!-- MODO 1: RANKING O INSCRIPCIÓN (Tarjetas) -->
-        {% if modo == 'ranking' or modo == 'torneo_inscripcion' %}
-            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
-                {% for jugador in jugadores %}
-                <div class="player-card group relative h-80 rounded-2xl overflow-hidden cursor-pointer border {{ 'border-neon' if loop.index == 1 else 'border-white/10' }}">
-                    <img src="https://ui-avatars.com/api/?name={{ jugador.name }}&background=random&size=512&bold=true" 
-                         class="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" alt="">
-                    
-                    <div class="absolute top-3 left-3 {{ 'bg-neon' if loop.index == 1 else 'bg-slate-800/80 text-white' }} font-bold px-3 py-1 rounded-md text-xs shadow-lg flex items-center gap-1">
-                        #{{ loop.index }}
-                    </div>
-
-                    <div class="absolute inset-0 gradient-overlay flex flex-col justify-end p-4">
-                        <div class="transform transition-transform duration-300 translate-y-2 group-hover:translate-y-0">
-                            <div class="flex justify-between items-end mb-1">
-                                <h3 class="text-lg md:text-xl font-bold leading-tight text-white">{{ jugador.name }}</h3>
-                                <div class="text-right">
-                                    <span class="block text-2xl font-black text-neon">{{ jugador.elo }}</span>
-                                    <span class="text-[10px] text-gray-400 uppercase tracking-widest">Puntos</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                {% endfor %}
-                
-                {% if jugadores|length == 0 %}
-                    <div class="col-span-full text-center py-20 text-slate-500">
-                        <i class="fa-solid fa-ghost text-4xl mb-4"></i>
-                        <p>Aún no hay jugadores en esta lista.</p>
-                    </div>
-                {% endif %}
-            </div>
-
-        <!-- MODO 2: BRACKETS (Partidos en Juego) -->
-        {% elif modo == 'torneo_brackets' %}
-            <div class="match-container">
-                <h2 class="text-2xl font-bold text-white mb-4 border-l-4 border-neon pl-3">Ronda 1</h2>
-                
-                {% for partido in partidos %}
-                <div class="match-box">
-                    <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 rounded-full bg-slate-700 overflow-hidden">
-                            <img src="https://ui-avatars.com/api/?name=J1&background=random" class="w-full h-full">
-                        </div>
-                        <span class="text-lg font-bold text-white">Jugador ID {{ partido.player_1_id }}</span>
-                    </div>
-                    
-                    <div class="vs-badge">VS</div>
-                    
-                    <div class="flex items-center gap-3">
-                        <span class="text-lg font-bold text-white">Jugador ID {{ partido.player_2_id }}</span>
-                        <div class="w-10 h-10 rounded-full bg-slate-700 overflow-hidden">
-                            <img src="https://ui-avatars.com/api/?name=J2&background=random" class="w-full h-full">
-                        </div>
-                    </div>
-                </div>
-                {% endfor %}
-            </div>
-        {% endif %}
-
+        <!-- ✅ BARRA DE CATEGORÍAS DINÁMICA -->
+        <div class="flex justify-center gap-4 border-b border-white/5 max-w-2xl mx-auto">
+            <button class="cat-tab active" onclick="filterCategory('TODOS', this)">TODOS</button>
+            {% for cat in categorias %}
+                <button class="cat-tab" onclick="filterCategory('{{ cat.name }}', this)">{{ cat.name }}</button>
+            {% endfor %}
+        </div>
     </div>
 
-    <!-- SCRIPT MÁGICO -->
+    <div class="max-w-7xl mx-auto px-4 mt-12">
+
+        <!-- 🎾 SECCIÓN DE RETOS -->
+        {% if retos %}
+        <div class="mb-20">
+            <h2 class="text-sm font-bold text-gray-400 mb-6 flex items-center gap-3 sport-font tracking-[0.3em]">
+                <span class="flex h-2 w-2 rounded-full bg-brand animate-pulse"></span>
+                DUELOS EN LA ARENA
+            </h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                {% for reto in retos %}
+                <div class="match-card rounded-2xl p-8 flex justify-between items-center relative overflow-hidden {{ 'match-confirmed' if reto.status == 'scheduled' else 'match-proposed' }}"
+                     {% if reto.status == 'scheduled' %} onclick="window.location.href='/tablero?matchId={{ reto.id }}&p1={{ reto.player_1.name }}&p2={{ reto.player_2.name }}'" {% endif %}>
+                    
+                    <div class="text-center w-1/3 z-10">
+                        <div class="text-2xl font-bold text-white sport-font">{{ reto.player_1.name.split(' ')[0] }}</div>
+                        <div class="text-[9px] text-gray-500 tracking-[0.2em] mt-1">RETADOR</div>
+                    </div>
+
+                    <div class="flex flex-col items-center w-1/3 z-10">
+                        <span class="text-4xl font-black text-white/5 sport-font italic leading-none">VS</span>
+                        {% if reto.status == 'scheduled' %}
+                            <span class="text-[9px] text-brand mt-2 font-black bg-brand/10 px-4 py-1.5 rounded-full border border-brand/30 animate-pulse tracking-widest">CONFIRMADO</span>
+                        {% else %}
+                            <span class="text-[9px] text-gray-500 mt-2 font-bold border border-white/10 px-4 py-1.5 rounded-full italic uppercase tracking-widest">PENDIENTE</span>
+                        {% endif %}
+
+                        <div class="mt-4 flex flex-col items-center opacity-40">
+                            <span class="text-[10px] digital-font font-medium tracking-[0.4em] text-white">
+                                {{ reto.scheduled_time.strftime('%d . %m') if reto.scheduled_time else '-- . --' }}
+                            </span>
+                            <span class="text-[12px] digital-font font-black tracking-[0.2em] text-white mt-1">
+                                {{ reto.scheduled_time.strftime('%H:%M') if reto.scheduled_time else '--:--' }}
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="text-center w-1/3 z-10">
+                        <div class="text-2xl font-bold text-white sport-font">{{ reto.player_2.name.split(' ')[0] }}</div>
+                        <div class="text-[9px] text-gray-500 tracking-[0.2em] mt-1">RIVAL</div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- ✅ GRID DE JUGADORES FILTRABLE -->
+        <div id="player-grid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 md:gap-10">
+            {% for jugador in jugadores %}
+            <!-- Añadimos data-categorias con los nombres de sus categorías -->
+            <div class="player-card-container relative h-[500px] rounded-3xl overflow-hidden group bg-zinc-900 border border-white/5 transition-all duration-500" 
+                 data-categorias="{{ jugador.categorias | join(' ') }}">
+                
+                <div class="absolute top-4 right-4 z-20 monthly-badge px-3 py-1 rounded-full flex flex-col items-center">
+                    <span class="text-[7px] text-gray-400 font-bold uppercase leading-none">Este Mes</span>
+                    <span class="text-gold font-black digital-font text-sm">{{ jugador.monthly_points if jugador.monthly_points else 0 }}</span>
+                </div>
+
+                {% if jugador.avatar_url %}
+                    <img src="{{ jugador.avatar_url }}?v={{ range(1, 999) | random }}" class="absolute inset-0 w-full h-full object-cover alive-photo grayscale group-hover:grayscale-0 transition-all duration-1000">
+                {% else %}
+                    <div class="absolute inset-0 bg-zinc-800 flex items-center justify-center">
+                        <span class="text-8xl font-black text-white/5 sport-font">{{ jugador.name[:2].upper() }}</span>
+                    </div>
+                {% endif %}
+                
+                <div class="absolute inset-0 card-gradient flex flex-col justify-end p-6 z-10">
+                    <div class="flex justify-between items-start mb-2">
+                        <div class="flex flex-col gap-1">
+                            <span class="text-4xl font-black text-white/20 sport-font index-number">{{ loop.index }}</span>
+                            <div class="flex gap-1">
+                                {% for i in range(jugador.stars) %}
+                                    <i class="fa-solid fa-star text-gold text-[10px] drop-shadow-[0_0_5px_rgba(255,204,0,0.8)]"></i>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <span class="text-[8px] text-gray-400 font-bold uppercase">Puntos Temporada</span>
+                            <span class="block text-4xl font-black text-brand digital-font leading-none">{{ jugador.season_points }}</span>
+                        </div>
+                    </div>
+
+                    <div class="pt-4 border-t border-white/10">
+                        <h3 class="text-xl font-bold text-white sport-font truncate mb-1">{{ jugador.name }}</h3>
+                        <div class="flex justify-between items-center bg-white/5 px-3 py-2 rounded-xl border border-white/5 mb-2">
+                            <span class="text-[8px] text-gray-500 font-bold uppercase">Legado Eterno</span>
+                            <span class="text-xs font-bold text-silver-color digital-font">{{ jugador.eternal_points | int }} XP</span>
+                        </div>
+                        <!-- Etiquetas de categorías del jugador -->
+                        <div class="flex gap-1 overflow-hidden opacity-30">
+                            {% for cname in jugador.categorias %}
+                                <span class="text-[6px] border border-white/20 px-1 rounded uppercase">{{ cname }}</span>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- SPONSOR FLOTANTE -->
+    {% if sponsor.activo %}
+    <a href="https://wa.me/{{ sponsor.whatsapp }}?text={{ sponsor.mensaje }}" target="_blank" class="fixed bottom-8 right-8 flex items-center gap-4 bg-white text-black px-6 py-4 rounded-2xl shadow-2xl border-b-4 border-orange-500 hover:scale-105 transition-all z-50">
+        <img src="{{ sponsor.logo }}" class="h-8 w-auto object-contain" alt="Sponsor">
+        <div class="flex flex-col items-start border-l border-gray-200 pl-4">
+            <span class="text-[9px] uppercase font-black text-gray-400">Próximo Nivel</span>
+            <span class="text-md font-black text-orange-500">INSCRIBIRME <i class="fa-solid fa-bolt ml-1"></i></span>
+        </div>
+    </a>
+    {% endif %}
+
     <script>
         const clubId = "{{ club_id }}"; 
-        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const wsUrl = `${protocol}//${window.location.host}/ws/${clubId}`;
-        const socket = new WebSocket(wsUrl);
-
-        socket.onmessage = function(event) {
-            if (event.data === "update") {
-                location.reload();
-            }
+        const socket = new WebSocket(`${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws/${clubId}`);
+        socket.onmessage = function(e) { 
+            if (e.data === "update") { 
+                document.body.style.opacity = "0.3"; 
+                setTimeout(() => location.reload(), 200); 
+            } 
         };
-        
-        // Auto-recarga de seguridad cada 10s por si el socket falla
-        setInterval(() => {
-            console.log("Verificando conexión...");
-        }, 10000);
-    </script>
 
+        // ✅ FUNCIÓN DE FILTRADO EN TIEMPO REAL
+        function filterCategory(catName, btn) {
+            // 1. Actualizar estado visual de botones
+            document.querySelectorAll('.cat-tab').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+
+            // 2. Filtrar tarjetas
+            const cards = document.querySelectorAll('.player-card-container');
+            let visibleIndex = 1;
+
+            cards.forEach(card => {
+                const cardCats = card.getAttribute('data-categorias');
+                if (catName === 'TODOS' || cardCats.includes(catName)) {
+                    card.style.display = 'block';
+                    // Opcional: Actualizar el número de posición visual para que sea coherente
+                    card.querySelector('.index-number').innerText = visibleIndex++;
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        }
+    </script>
 </body>
 </html>

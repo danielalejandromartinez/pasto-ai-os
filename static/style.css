@@ -1,0 +1,150 @@
+/* --- CONFIGURACIÓN ESTRATÉGICA PASTO.AI 2030 | VERSIÓN ROBUSTA --- */
+:root {
+    --neon-blue: #00f2ff;
+    --neon-glow: 0 0 15px rgba(0, 242, 255, 0.5);
+    --neon-gold: #ffcc00;
+    --neon-gold-glow: 0 0 15px rgba(255, 204, 0, 0.3);
+    --neon-green: #00ff88;
+    --neon-red: #ff4444;
+    --bg-dark: #050505;
+    --text-main: #ffffff;
+    --glass: rgba(255, 255, 255, 0.03);
+    --glass-border: rgba(255, 255, 255, 0.08);
+    --font-tech: 'Rajdhani', sans-serif;
+    --font-digital: 'Orbitron', sans-serif; 
+}
+
+/* --- BASE DEL SISTEMA --- */
+body {
+    background-color: var(--bg-dark); 
+    color: var(--text-main); 
+    font-family: var(--font-tech);
+    margin: 0; padding: 0; 
+    min-height: 100vh; width: 100vw;
+    overflow: hidden;
+    background-image: 
+        radial-gradient(circle at 50% 50%, rgba(0, 242, 255, 0.07) 0%, transparent 80%),
+        linear-gradient(rgba(0, 242, 255, 0.03) 1px, transparent 1px), 
+        linear-gradient(90deg, rgba(0, 242, 255, 0.03) 1px, transparent 1px);
+    background-size: 100% 100%, 35px 35px, 35px 35px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    -webkit-user-select: none; user-select: none;
+}
+
+/* --- LÁSER DE ESCANEO SWARM --- */
+.scanline {
+    width: 100%; height: 2px; background: var(--neon-blue);
+    position: fixed; top: 0; left: 0; z-index: 100;
+    opacity: 0.15; box-shadow: var(--neon-glow);
+    animation: scan 8s linear infinite;
+    pointer-events: none;
+}
+@keyframes scan { from { top: 0; } to { top: 100%; } }
+
+.bg-grid { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; }
+
+/* --- PANTALLAS (TRANSICIÓN SUAVE) --- */
+.screen {
+    display: none; height: 100vh; width: 100%; max-width: 500px;
+    flex-direction: column; align-items: center; justify-content: center;
+    padding: 20px; box-sizing: border-box;
+    animation: fadeIn 0.5s ease-out;
+}
+.screen.active { display: flex; }
+@keyframes fadeIn { from { opacity: 0; transform: scale(0.98); } to { opacity: 1; transform: scale(1); } }
+
+/* --- COMPONENTES DE CONFIGURACIÓN --- */
+.cyber-title { 
+    font-family: 'Orbitron', sans-serif; color: var(--neon-blue); 
+    text-shadow: var(--neon-glow); letter-spacing: 5px; 
+    margin-bottom: 30px; text-transform: uppercase; font-size: 22px;
+    text-align: center;
+}
+
+/* NUEVA CAJA DE CRISTAL PARA CENTRAR TODO */
+.glass-panel {
+    background: var(--glass);
+    backdrop-filter: blur(15px);
+    border: 1px solid var(--glass-border);
+    border-radius: 25px;
+    padding: 35px; width: 100%;
+    display: flex; flex-direction: column; align-items: center; gap: 20px;
+    box-shadow: 0 15px 35px rgba(0,0,0,0.5);
+}
+
+.input-wrapper { width: 100%; position: relative; display: flex; flex-direction: column; align-items: center; }
+
+.label-mini {
+    font-size: 8px; color: var(--neon-blue); opacity: 0.5;
+    letter-spacing: 3px; text-transform: uppercase; margin-bottom: 8px;
+    font-family: 'Orbitron';
+}
+
+input { 
+    width: 100%; 
+    background: rgba(0,0,0,0.3) !important;
+    border: 1px solid rgba(255,255,255,0.1); 
+    border-bottom: 2px solid #333; 
+    color: white !important; 
+    font-family: 'Orbitron'; 
+    font-size: 16px; 
+    padding: 15px; 
+    text-align: center; 
+    outline: none; 
+    transition: 0.3s;
+    border-radius: 10px;
+}
+input:focus { border-color: var(--neon-blue); text-shadow: var(--neon-glow); background: rgba(0,242,255,0.05) !important; }
+
+/* --- BOTONES CYBER --- */
+.btn-cyber {
+    background: rgba(0, 0, 0, 0.6); border: 1px solid var(--neon-blue); color: var(--neon-blue); 
+    padding: 18px 40px; font-family: 'Orbitron'; font-size: 13px; font-weight: 900;
+    text-transform: uppercase; cursor: pointer; box-shadow: var(--neon-glow);
+    clip-path: polygon(10% 0, 100% 0, 100% 70%, 90% 100%, 0 100%, 0 30%);
+    margin: 15px 0; min-width: 250px; transition: 0.3s;
+}
+.btn-cyber:hover { background: var(--neon-blue); color: black; box-shadow: 0 0 25px var(--neon-blue); }
+.btn-cyber:active { transform: scale(0.95); }
+
+.btn-mode { 
+    flex: 1; background: rgba(255,255,255,0.02); border: 1px solid #333; color: #555; 
+    padding: 12px; font-family: 'Orbitron'; font-size: 9px; cursor: pointer;
+    border-radius: 8px; transition: 0.3s;
+}
+.btn-mode.active { border-color: var(--neon-blue); color: var(--neon-blue); background: rgba(0,242,255,0.1); }
+
+/* --- HUD DE PARTIDO (TABLERO) --- */
+.sets-hud { 
+    height: 15%; width: 100%; display: flex; justify-content: center; align-items: center; 
+    background: rgba(0,0,0,0.95); border-bottom: 1px solid #1a1a1a; gap: 40px;
+    border-radius: 0 0 30px 30px; margin-bottom: 10px;
+}
+.set-score { font-family: var(--font-digital); font-size: 35px; color: var(--neon-blue); text-shadow: var(--neon-glow); }
+.vs-badge { font-family: 'Orbitron'; color: #222; font-weight: 900; font-style: italic; font-size: 25px; }
+
+.player-card { 
+    flex: 1; width: 100%; display: flex; flex-direction: column; justify-content: center; 
+    align-items: center; cursor: pointer; transition: 0.3s;
+    background: var(--glass); border: 1px solid var(--glass-border); border-radius: 20px;
+    margin: 5px 0;
+}
+.player-card:active { background: rgba(0, 242, 255, 0.08); }
+.player-card h3 { font-family: 'Rajdhani'; font-size: 20px; color: #777; text-transform: uppercase; margin: 0; letter-spacing: 3px; }
+
+.score-display { 
+    font-family: var(--font-digital); font-size: 140px; font-weight: 900; 
+    color: white; text-shadow: 0 0 30px rgba(255,255,255,0.1); line-height: 1; 
+}
+
+.tap-indicator { font-family: 'Orbitron'; font-size: 8px; color: var(--neon-blue); opacity: 0.3; letter-spacing: 2px; margin-top: 10px; }
+
+.controls-hud { height: 10%; width: 100%; display: flex; justify-content: center; align-items: center; }
+.btn-undo { background: transparent; color: #444; border: 1px solid #222; padding: 12px 35px; border-radius: 30px; font-family: 'Orbitron'; font-size: 9px; transition: 0.3s; }
+.btn-undo:hover { color: #888; border-color: #444; }
+
+/* --- TEMPORIZADOR --- */
+.timer-urgent { animation: pulseRed 1s infinite; }
+@keyframes pulseRed { 0%, 100% { color: var(--neon-gold); } 50% { color: var(--neon-red); } }
+
+.logo-video { width: 100%; max-width: 350px; height: auto; border-radius: 15px; filter: drop-shadow(0 0 15px rgba(0, 242, 255, 0.3)); }

@@ -1,6 +1,6 @@
 from fastapi import WebSocket
+import json
 
-# --- GESTOR DE WEBSOCKETS MULTI-CANAL (SAAS) ---
 class ConnectionManager:
     def __init__(self):
         # Diccionario: { club_id: [lista_de_conexiones] }
@@ -17,11 +17,18 @@ class ConnectionManager:
             if websocket in self.active_connections[club_id]:
                 self.active_connections[club_id].remove(websocket)
 
+    # --- ESTA ES LA FUNCIÓN QUE FALTABA ---
     async def broadcast(self, message: str, club_id: int):
-        # Solo enviamos mensaje a las TVs de ESTE club específico
+        """
+        Envía un mensaje a todas las pantallas conectadas a un club específico.
+        """
         if club_id in self.active_connections:
-            for connection in self.active_connections[club_id]:
-                await connection.send_text(message)
+            # Iteramos sobre una copia de la lista para evitar errores si alguien se desconecta
+            for connection in list(self.active_connections[club_id]):
+                try:
+                    await connection.send_text(message)
+                except Exception:
+                    # Si la conexión está muerta, la sacamos
+                    self.disconnect(connection, club_id)
 
-# Instancia global para usar en todo el proyecto
 manager = ConnectionManager()

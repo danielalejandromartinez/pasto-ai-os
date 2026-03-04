@@ -1,6 +1,25 @@
-# .gitignore
-venv/
-__pycache__/
+# --- SECRETOS Y SEGURIDAD ---
+.env
+*.env
+
+# --- BASES DE DATOS LOCALES ---
 *.db
 *.sqlite3
-.env
+
+# --- ARCHIVOS DE SISTEMA Y BASURA ---
+__pycache__/
+*.py[cod]
+*$py.class
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# --- CARPETAS DE DESARROLLO ---
+venv/
+env/
+.vscode/
+
+# --- ARCHIVOS MULTIMEDIA DE PRUEBA ---
+# Ignoramos las fotos que tú subas en local para que la nube empiece limpia
+static/profiles/*
+!static/profiles/.gitkeep

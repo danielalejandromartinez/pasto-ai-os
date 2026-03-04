@@ -1,10 +1,19 @@
-fastapi
-uvicorn
-jinja2
-python-multipart
-sqlalchemy
-openai
-python-dotenv
-websockets
-requests
-psycopg2-binary
+# --- MOTOR CORE (EL ESQUELETO) ---
+fastapi==0.109.0
+uvicorn[standard]==0.27.0
+gunicorn==21.2.0
+
+# --- CEREBRO Y COMUNICACIÓN (LOS NERVIOS) ---
+openai==1.12.0
+python-dotenv==1.0.1
+requests==2.31.0
+pytz==2024.1
+
+# --- VISUALIZACIÓN Y WEB (LA PIEL) ---
+jinja2==3.1.3
+python-multipart==0.0.9
+websockets==12.0
+
+# --- BASE DE DATOS Y TITANIO (LOS CIMIENTOS) ---
+sqlalchemy==2.0.25
+psycopg2-binary==2.9.9

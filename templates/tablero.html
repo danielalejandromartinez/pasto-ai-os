@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Pasto.AI | Arena Referee OS</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/style.css">
+    
+    <style>
+        .agent-status {
+            position: fixed; top: 20px; right: 20px;
+            font-family: 'Orbitron'; font-size: 8px; color: var(--neon-green);
+            display: flex; align-items: center; gap: 8px; letter-spacing: 2px;
+            z-index: 110; background: rgba(0,0,0,0.8); padding: 10px 18px; border-radius: 30px;
+            border: 1px solid rgba(0,255,136,0.2);
+        }
+        .pulse-dot { width: 6px; height: 6px; background: var(--neon-green); border-radius: 50%; animation: pulse 2s infinite; box-shadow: 0 0 10px var(--neon-green); }
+        @keyframes pulse { 0% { opacity: 1; transform: scale(1); } 50% { opacity: 0.5; transform: scale(1.2); } 100% { opacity: 1; transform: scale(1); } }
+
+        /* Estilo específico para el teclado de seguridad */
+        .security-input {
+            background: rgba(0, 242, 255, 0.05) !important;
+            border: 2px solid var(--neon-blue) !important;
+            letter-spacing: 15px;
+            font-size: 30px !important;
+            width: 250px !important;
+            margin-bottom: 20px;
+        }
+        .lock-icon { font-size: 50px; color: var(--neon-blue); margin-bottom: 20px; opacity: 0.5; }
+    </style>
+</head>
+<body>
+    <div class="scanline"></div>
+    <div class="bg-grid"></div>
+
+    <div class="agent-status">
+        <div class="pulse-dot"></div> ENJAMBRE PASTO.AI SINCRONIZADO
+    </div>
+
+    <!-- 🔐 PANTALLA 0: BLOQUEO DE SEGURIDAD (HITO DE CIBERSEGURIDAD) -->
+    <div id="screen-lock" class="screen active">
+        <div class="lock-icon">
+            <i class="fa-solid fa-shield-halved"></i>
+        </div>
+        <h2 class="cyber-title">ACCESO RESTRINGIDO</h2>
+        <p class="label-mini" style="margin-bottom: 30px;">Identifíquese como Árbitro Autorizado</p>
+        
+        <div class="input-wrapper">
+            <input type="password" id="ref-passcode" class="security-input" placeholder="****" maxlength="4" inputmode="numeric">
+        </div>
+        
+        <button class="btn-cyber" onclick="app.unlock()">
+            DESBLOQUEAR TERMINAL
+        </button>
+        <p id="lock-error" style="color: var(--neon-red); font-size: 10px; margin-top: 15px; font-family: 'Orbitron'; display: none;">LLAVE DE COMANDO INVÁLIDA</p>
+    </div>
+
+    <!-- PANTALLA 1: INICIO (Oculta hasta desbloquear) -->
+    <div id="screen-home" class="screen">
+        <div class="video-container" style="margin-bottom: 30px;">
+            <video autoplay loop muted playsinline class="logo-video">
+                <source src="/static/logo_pasto.mp4" type="video/mp4">
+            </video>
+        </div>
+        <h2 style="font-family:'Orbitron'; color: #444; font-size: 12px; letter-spacing: 8px; margin-bottom: 20px;">REFEREE SYSTEM V2.0</h2>
+        <button class="btn-cyber" onclick="app.goToSetup()">
+            <span class="btn-text">DESPERTAR AGENTE</span>
+        </button>
+    </div>
+
+    <!-- PANTALLA 2: CONFIGURACIÓN -->
+    <div id="screen-setup" class="screen">
+        <h2 class="cyber-title">SINCRONIZACIÓN DE DUELO</h2>
+        <div class="glass-panel">
+            <div class="input-wrapper">
+                <span class="label-mini">GUERRERO ALFA</span>
+                <input type="text" id="input-p1" placeholder="CARGANDO..." autocomplete="off" readonly>
+            </div>
+            <div class="input-wrapper" style="margin-top: 10px;">
+                <span class="label-mini">GUERRERO BETA</span>
+                <input type="text" id="input-p2" placeholder="CARGANDO..." autocomplete="off" readonly>
+            </div>
+            <div style="width: 100%; text-align: center; margin-top: 10px;">
+                <span class="label-mini">MODALIDAD DE COMBATE</span>
+                <div class="format-selector" style="display: flex; gap: 10px; margin-top: 10px;">
+                    <button id="btn-m3" class="btn-mode" onclick="app.setFormat(2)">AL MEJOR DE 3</button>
+                    <button id="btn-m5" class="btn-mode active" onclick="app.setFormat(3)">AL MEJOR DE 5</button>
+                </div>
+            </div>
+        </div>
+        <button class="btn-cyber" onclick="app.startMatch()" style="margin-top: 30px;">
+            INICIALIZAR MOTOR
+        </button>
+        <button style="background: transparent; color: #ff4444; border: none; font-family: 'Orbitron'; font-size: 9px; cursor: pointer; margin-top: 15px; opacity: 0.5;" onclick="window.location.href='/club/1'">ABORTAR MISIÓN</button>
+    </div>
+
+    <!-- PANTALLA 3: TABLERO -->
+    <div id="screen-match" class="screen">
+        <div class="sets-hud">
+            <div style="text-align: center;">
+                <span class="label-mini" style="margin:0;">SETS A</span>
+                <span id="sets-p1" class="set-score">0</span>
+            </div>
+            <div class="vs-badge">VS</div>
+            <div style="text-align: center;">
+                <span class="label-mini" style="margin:0;">SETS B</span>
+                <span id="sets-p2" class="set-score">0</span>
+            </div>
+        </div>
+        <div class="players-container" style="width: 100%; flex: 1; display: flex; flex-direction: column; gap: 10px;">
+            <div class="player-card" onclick="app.addPoint(1)">
+                <h3 id="name-p1" style="color: var(--neon-blue);">ALFA</h3>
+                <div id="score-p1" class="score-display">00</div>
+            </div>
+            <div class="player-card" onclick="app.addPoint(2)">
+                <h3 id="name-p2">BETA</h3>
+                <div id="score-p2" class="score-display">00</div>
+            </div>
+        </div>
+        <div class="controls-hud">
+            <button class="btn-undo" onclick="app.undo()">↩ CORREGIR MOVIMIENTO</button>
+        </div>
+    </div>
+
+    <!-- PANTALLA 4: DESCANSO -->
+    <div id="screen-timer" class="screen">
+        <h2 class="cyber-title" style="color: var(--neon-gold);">PUNTO DE RECARGA</h2>
+        <div id="timer-display" class="score-display" style="font-size: 130px; color: var(--neon-gold);">01:30</div>
+        <button class="btn-cyber" style="border-color: var(--neon-gold); color: var(--neon-gold);" onclick="app.skipTimer()">SALTAR PROTOCOLO</button>
+    </div>
+
+    <!-- PANTALLA 5: RESULTADO -->
+    <div id="screen-result" class="screen">
+        <h1 class="cyber-title">CICLO FINALIZADO</h1>
+        <div class="glass-panel" style="text-align: center;">
+            <span class="label-mini">DOMINADOR OFICIAL</span>
+            <h2 id="winner-name" style="font-size: 40px; color: var(--neon-blue); font-family: 'Orbitron';">---</h2>
+            <h3 style="font-family:'Orbitron'; font-size: 16px; color: #555;">SCORE: <span id="final-sets" style="color: white;">0 - 0</span></h3>
+        </div>
+        <button class="btn-cyber" onclick="app.reset()" style="margin-top: 40px;">REPORTAR AL HUB 📡</button>
+    </div>
+
+    <script src="https://kit.fontawesome.com/your-code-here.js" crossorigin="anonymous"></script>
+    <script src="/static/app.js"></script>
+</body>
+</html>
