@@ -183,14 +183,8 @@ def nuclear_reset():
 async def procesar_mensaje_ia(telefono: str, texto: str, tipo: str, enviar_real: bool = False, media_id: str = None):
     db = SessionLocal()
     try:
-        # --- 1. OBSERVANDO ---
-        print(f"\n{C_OBS}[LOOP: PASO 1 - OBSERVANDO 👁️]{C_END}")
-        print(f"   📥 Entrada detectada: Socio {telefono} | Tipo: {tipo} | Señal: '{texto}'")
-        msg_user = MessageHistory(phone_number=telefono, role="user", content=texto if tipo == 'text' else "[FOTO]")
-        db.add(msg_user); db.commit()
-
         # --- 7. APRENDIENDO (Carga de Contexto) ---
-        print(f"{C_LEA}[LOOP: PASO 7 - APRENDIENDO 📚]{C_END}")
+        print(f"\n{C_LEA}[LOOP: PASO 7 - APRENDIENDO 📚]{C_END}")
         mensajes_db = db.query(MessageHistory).filter_by(phone_number=telefono).order_by(MessageHistory.timestamp.desc()).limit(6).all()
         historial_chat = [{"role": m.role, "content": m.content} for m in reversed(mensajes_db)]
         print(f"   🧠 Sincronizando memoria activa ({len(historial_chat)} registros cargados).")
@@ -249,7 +243,6 @@ async def procesar_mensaje_ia(telefono: str, texto: str, tipo: str, enviar_real:
 # ============================================================
 @app.get("/test-chat", response_class=HTMLResponse)
 async def chat_local():
-    # Mantenemos tu simulador exacto para pruebas
     return """
     <html><head><title>Pasto.AI Simulador</title></head>
     <body style="background:#050505; color:#00f2ff; font-family:monospace; display:flex; flex-direction:column; align-items:center; padding:50px;">
@@ -281,6 +274,7 @@ async def chat_local():
 @app.post("/local-webhook")
 async def local_loop(request: Request):
     data = await request.json()
+    # Para pruebas locales no hay ID único de WhatsApp, así que lo manejamos normal
     return await procesar_mensaje_ia(data.get('from'), data.get('text', ''), data.get('type', 'text'), False)
 
 @app.get("/webhook")
@@ -291,19 +285,54 @@ async def verify_webhook(request: Request):
     return PlainTextResponse(content="Error", status_code=403)
 
 @app.post("/webhook")
-async def receive_meta_webhook(request: Request, background_tasks: BackgroundTasks):
+async def receive_meta_webhook(request: Request, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
     try:
         body = await request.json()
         print(f"\n{C_OBS}📥 [RADAR] -> Señal real de WhatsApp entrante...{C_END}")
+        
         if body.get("object") == "whatsapp_business_account":
             for entry in body.get("entry", []):
                 for change in entry.get("changes", []):
                     value = change.get("value", {})
                     if "messages" in value:
                         for msg in value.get("messages", []):
-                            background_tasks.add_task(procesar_mensaje_ia, msg.get("from"), msg.get("text", {}).get("body", ""), msg.get("type"), True, msg.get("image", {}).get("id") if msg.get("type") == "image" else None)
+                            # --- 🛡️ ESCUDO DE DEDUPLICACIÓN (NASA STANDARDS) ---
+                            wamid = msg.get("id")
+                            telefono = msg.get("from")
+                            texto = msg.get("text", {}).get("body", "")
+                            tipo = msg.get("type")
+                            
+                            # 1. ¿Ya vimos este mensaje en la libreta?
+                            existe = db.query(MessageHistory).filter_by(whatsapp_msg_id=wamid).first()
+                            if existe:
+                                print(f"{C_ADJ}⚠️ [DEDUPLICACIÓN] Mensaje {wamid} ya procesado. Ignorando para romper bucle.{C_END}")
+                                continue # No hacemos nada, saltamos al siguiente
+                            
+                            # 2. Si es nuevo, el Recepcionista lo anota INMEDIATAMENTE y firma el recibo
+                            print(f"{C_EXE}📝 [RECEPCIONISTA] Anotando mensaje nuevo: {wamid}{C_END}")
+                            nuevo_registro = MessageHistory(
+                                whatsapp_msg_id=wamid, 
+                                phone_number=telefono, 
+                                role="user", 
+                                content=texto if tipo == 'text' else f"[{tipo.upper()}]"
+                            )
+                            db.add(nuevo_registro)
+                            db.commit() # Guardamos YA para que si llega un reintento en 1 segundo, ya esté en la libreta.
+                            
+                            # 3. Ahora sí, le pasamos la carta a Alejandro para que trabaje en el fondo
+                            background_tasks.add_task(
+                                procesar_mensaje_ia, 
+                                telefono, 
+                                texto, 
+                                tipo, 
+                                True, 
+                                msg.get("image", {}).get("id") if tipo == "image" else None
+                            )
+                            
+        return PlainTextResponse(content="OK", status_code=200) # Firma de recibo instantánea para Meta
+    except Exception as e:
+        print(f"❌ Error en Webhook: {e}")
         return PlainTextResponse(content="OK", status_code=200)
-    except Exception: return PlainTextResponse(content="OK", status_code=200)
 
 @app.websocket("/ws/{club_id}")
 async def websocket_endpoint(websocket: WebSocket, club_id: int):

@@ -165,6 +165,8 @@ class AgentMemory(Base):
 class MessageHistory(Base):
     __tablename__ = "message_history"
     id = Column(Integer, primary_key=True, index=True)
+    # 🆕 AGREGADO: Sello único para evitar que Meta repita mensajes (Deduplicación)
+    whatsapp_msg_id = Column(String, unique=True, index=True, nullable=True)
     phone_number = Column(String, index=True)
     role = Column(String) 
     content = Column(String)
