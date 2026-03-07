@@ -58,6 +58,14 @@ class BookingAgent:
                 "reply": f"❌ Lo siento, no encuentro a ningún jugador llamado '{nombre_fallido}' en el ranking. ¿Te aseguraste de escribir bien su nombre?"
             }
 
+        # 🛡️ REGLA DE ORO: Validar que no se rete a sí mismo (Evita el error Daniel vs Daniel)
+        if p1.id == p2.id:
+            print(f"\033[1;31m🚫 [BOOKING/BLOQUEO] -> Intento de auto-reto detectado para: {p1.name}\033[0m")
+            return {
+                "status": "error",
+                "reply": f"¡Oye {p1.name}! 😂 No puedes retarte a ti mismo. Busca a otro guerrero en el Muro de la Fama para demostrar tu nivel."
+            }
+
         # 3. [INTERPRETAR] - Validar Fecha
         fecha_obj = None
         if fecha_iso:
