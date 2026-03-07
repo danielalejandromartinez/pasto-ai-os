@@ -1,7 +1,8 @@
 import os
 import requests
 import base64
-import shutil # 🆕 Nueva herramienta para copiar archivos
+import shutil
+import random # 🆕 Nueva herramienta para la ruleta al azar
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -10,6 +11,7 @@ WHATSAPP_TOKEN = os.getenv("WHATSAPP_TOKEN")
 def descargar_foto_perfil(media_id, telefono_usuario):
     """
     EL RECAUDADOR DE IMÁGENES REALES (Meta -> Render)
+    Mantiene la integridad del flujo de WhatsApp oficial.
     """
     try:
         print(f"\n\033[1;94m📸 [FOTÓGRAFO/MEDIA] -> Solicitando selfie real a Meta para: {telefono_usuario}\033[0m")
@@ -54,31 +56,40 @@ def descargar_foto_perfil(media_id, telefono_usuario):
 
 def activar_foto_demo(telefono_usuario):
     """
-    🆕 LA CÁMARA MÁGICA:
-    Si estamos en el simulador, usa una foto profesional de respaldo
-    para que el workflow no se rompa y el inversor vea su tarjeta iluminada.
+    🆕 LA RULETA DE GUERREROS 2030:
+    Asigna una de las 10 imágenes de guerreros al azar para la demo.
+    Si las fotos no existen, usa el logo del club como 'Red de Seguridad'.
     """
     try:
-        print(f"\033[1;33m🎭 [DEMO_MODE] -> Activando Avatar Táctico para {telefono_usuario}...\033[0m")
+        print(f"\033[1;33m🎲 [RULETA_DEMO] -> Eligiendo identidad visual para {telefono_usuario}...\033[0m")
         
         folder = "static/profiles"
         if not os.path.exists(folder): os.makedirs(folder)
 
-        # Ruta donde queremos que quede la foto del socio
+        # Destino: La foto que usará este socio específico
         destino = os.path.join(folder, f"{telefono_usuario}.jpg")
         
-        # Ruta de nuestra foto de lujo (el logo del club sirve como avatar pro)
-        origen = "static/logo_pasto.jpg" 
+        # 🎯 Elegimos un número al azar del 1 al 10
+        numero_azar = random.randint(1, 10)
+        
+        # Buscamos en el armario de guerreros
+        origen = f"static/guerrero_{numero_azar}.jpg" 
 
+        # 🛡️ VERIFICACIÓN DE SEGURIDAD (Regla de Oro)
         if os.path.exists(origen):
             shutil.copy(origen, destino)
-            print(f"\033[1;32m✨ [ÉXITO] Avatar asignado correctamente.\033[0m")
-            return f"/static/profiles/{telefono_usuario}.jpg"
+            print(f"\033[1;32m⚔️ [ÉXITO] Guerrero #{numero_azar} asignado a la Arena.\033[0m")
         else:
-            print("⚠️ [ADVERTENCIA] No encontré 'logo_pasto.jpg' para usar como avatar.")
-            return None
+            # Si aún no has subido las fotos de los guerreros, usamos el logo para no romper la web
+            print(f"⚠️ [AVISO] Guerrero #{numero_azar} no encontrado. Usando Logo de respaldo.")
+            backup = "static/logo_pasto.jpg"
+            if os.path.exists(backup):
+                shutil.copy(backup, destino)
+        
+        return f"/static/profiles/{telefono_usuario}.jpg"
+
     except Exception as e:
-        print(f"❌ Fallo al activar foto demo: {e}")
+        print(f"❌ Error en Ruleta Demo: {e}")
         return None
 
 def codificar_imagen(path_imagen):
