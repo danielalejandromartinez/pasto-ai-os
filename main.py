@@ -130,51 +130,26 @@ async def ver_club(request: Request, club_id: int, db: Session = Depends(get_db)
 async def finalizar_partido(request: Request, db: Session = Depends(get_db)):
     try:
         data = await request.json()
-        winner_name = data.get("ganador")
-        match_id = data.get("matchId")
-        
+        winner_name = data.get("ganador"); match_id = data.get("matchId")
         print(f"\n{C_OBS}[LOOP: PASO 1 - OBSERVANDO 👁️] -> Transmisión de resultado para Match ID: {match_id}{C_END}")
-        
-        # 1. Recuperamos el duelo real de la base de datos
         match = db.query(Match).filter(Match.id == match_id).first()
-        if not match:
-            return {"status": "error", "mensaje": "Duelo no localizado."}
-
-        # 2. Identificamos Ganador y Participante
+        if not match: return {"status": "error", "mensaje": "Duelo no localizado."}
         p1, p2 = match.player_1, match.player_2
         winner_norm = _norm(winner_name)
-
         if _norm(p1.name) in winner_norm or winner_norm in _norm(p1.name):
             ganador, participante = p1, p2
         else:
             ganador, participante = p2, p1
-
         print(f"{C_EXE}[LOOP: PASO 5 - EJECUTANDO ⚡] -> Aplicando lógica 10/3: {ganador.name} (W) vs {participante.name} (P){C_END}")
-
-        # 🏆 PREMIO AL GANADOR: 10 Puntos
-        ganador.eternal_points += 10.0
-        ganador.wins += 1
-        db.add(PointTransaction(
-            player_id=ganador.id, match_id=match_id, points_earned=10.0, 
-            match_type="challenge", category_at_moment=ganador.category, timestamp=datetime.now()
-        ))
-
-        # 🛡️ PREMIO AL VALIENTE (PARTICIPACIÓN): 3 Puntos
-        participante.eternal_points += 3.0
-        participante.losses += 1
-        db.add(PointTransaction(
-            player_id=participante.id, match_id=match_id, points_earned=3.0, 
-            match_type="challenge", category_at_moment=participante.category, timestamp=datetime.now()
-        ))
-
-        # 3. Cerramos el ciclo
+        ganador.eternal_points += 10.0; ganador.wins += 1
+        db.add(PointTransaction(player_id=ganador.id, match_id=match_id, points_earned=10.0, match_type="challenge", timestamp=datetime.now()))
+        participante.eternal_points += 3.0; participante.losses += 1
+        db.add(PointTransaction(player_id=participante.id, match_id=match_id, points_earned=3.0, match_type="challenge", timestamp=datetime.now()))
         match.is_finished = True; match.status = "finished"; match.score = data.get("res"); match.winner_id = ganador.id
         db.commit()
-        
         print(f"{C_VER}[LOOP: PASO 6 - VERIFICANDO ✅] -> Muro de la Fama actualizado para ambos.{C_END}")
         await manager.broadcast("update", 1)
         return {"status": "success"}
-        
     except Exception as e:
         print(f"❌ Error crítico en el Juez: {e}")
         return {"status": "error", "mensaje": str(e)}
@@ -190,21 +165,15 @@ async def ver_tablero(request: Request):
 def nuclear_reset():
     Base.metadata.drop_all(bind=engine); Base.metadata.create_all(bind=engine)
     db = SessionLocal()
-    
-    # 📋 LISTA MAESTRA DE SOCIOS PARA LA DEMO SIN FRICCIÓN
     demo_players = [
         ("Daniel (CEO)", "573152405542"), ("Paula", "573186597045"), ("Maria Paula", "573133969908"),
         ("Fernando", "573001112233"), ("Andres", "573002223344"), ("Carlos", "573003334455"),
         ("Diana", "573004445566"), ("Elena", "573005556677"), ("Gabriel", "573006667788"), ("Hugo", "573007778899")
     ]
-    
     db.add(Club(id=1, name="Club Colombia", admin_phone="573152405542"))
     db.add(Season(id=1, name="Temporada I - 2026", start_date=datetime(2026, 1, 1), end_date=datetime(2026, 5, 31), club_id=1))
-    
-    # Pre-autorizamos a los 10 guerreros de inmediato
     for name, phone in demo_players:
         db.add(WhiteList(phone_number=phone, full_name=name, club_id=1, is_active=True))
-    
     db.commit(); db.close()
     print(f"{C_EXE}🚀 [SISTEMA] Reset nuclear completado con 10 identidades habilitadas.{C_END}")
     return {"status": "success", "message": "Reset nuclear completado con 10 identidades habilitadas."}
@@ -219,6 +188,18 @@ async def procesar_mensaje_ia(telefono: str, texto: str, tipo: str, enviar_real:
         mensajes_db = db.query(MessageHistory).filter_by(phone_number=telefono).order_by(MessageHistory.timestamp.desc()).limit(6).all()
         historial_chat = [{"role": m.role, "content": m.content} for m in reversed(mensajes_db)]
         
+        print(f"{C_INT}[LOOP: PASO 2 - INTERPRETANDO 🧠]{C_END}")
+        
+        # --- 🆕 AJUSTE DE CÁMARA MÁGICA PARA EL SIMULADOR ---
+        if tipo == 'image':
+            if enviar_real and media_id:
+                # Caso WhatsApp real: Descargamos desde Meta
+                media_service.descargar_foto_perfil(media_id, telefono)
+            else:
+                # Caso Simulador: Activamos el Avatar de respaldo profesional
+                media_service.activar_foto_demo(telefono)
+        # ----------------------------------------------------
+
         usuario_contexto = user_classifier.clasificar_usuario(telefono)
         intencion = {"tipo": "enviar_comprobante"} if tipo == 'image' else intent_resolver.analizar_intencion(texto, usuario_contexto, historial_chat)
 
@@ -275,6 +256,7 @@ async def chat_local():
             .msg { max-width: 85%; padding: 16px 22px; border-radius: 20px; font-size: 14px; line-height: 1.6; border: 1px solid transparent; }
             .user { align-self: flex-end; background: var(--neon); color: black; font-weight: 800; border-bottom-right-radius: 4px; box-shadow: 0 5px 15px rgba(0,242,255,0.2); }
             .bot { align-self: flex-start; background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.1); border-bottom-left-radius: 4px; color: #ccc; }
+            .proactive { border-color: #ff8c00; color: #ff8c00; font-style: italic; background: rgba(255,140,0,0.05); font-size: 12px; }
             .input-area { padding: 30px; border-top: 1px solid rgba(255,255,255,0.05); background: rgba(0,0,0,0.4); }
             select, input { width: 100%; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); padding: 18px; color: white; border-radius: 15px; outline: none; font-family: 'Rajdhani'; margin-bottom: 20px; font-size: 16px; }
             select { color: var(--neon); font-family: 'Orbitron'; font-size: 10px; font-weight: bold; letter-spacing: 2px; }
@@ -289,7 +271,7 @@ async def chat_local():
         <div class="terminal">
             <div class="header">
                 <h1>SANDBOX_OS_2030</h1>
-                <div style="font-size: 8px; opacity: 0.3; margin-top: 8px; letter-spacing: 2px;">VIRTUAL_IDENTITY_CONTROL</div>
+                <div style="font-size: 8px; opacity: 0.3; margin-top: 8px;">VIRTUAL_IDENTITY_CONTROL</div>
             </div>
             <div id="chat" class="chat-box">
                 <div class="msg bot">Vínculo establecido. Seleccione una identidad de la lista para simular el comando.</div>
