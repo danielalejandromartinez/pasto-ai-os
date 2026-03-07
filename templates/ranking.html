@@ -2,19 +2,18 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>THE ARENA | Pasto.AI Hub</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>THE ARENA 2030 | Pasto.AI OS</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@200;400;900&family=Rajdhani:wght@500;700&family=Orbitron:wght@400;900&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@200;400;700&family=Rajdhani:wght@500;700&family=Orbitron:wght@400;900&display=swap');
 
-        /* 🎨 VARIABLES DEL FUTURO: Preparado para el Dashboard No-Code */
         :root {
             --brand-color: {{ sponsor.color if sponsor.activo else '#00f2ff' }};
             --gold-color: #ffcc00;
-            --glass-bg: rgba(255, 255, 255, 0.03);
-            --glass-border: rgba(255, 255, 255, 0.1);
+            --glass-bg: rgba(255, 255, 255, 0.015);
+            --glass-border: rgba(255, 255, 255, 0.07);
         }
 
         body { 
@@ -23,106 +22,116 @@
             color: white;
             background-image: 
                 radial-gradient(circle at 50% -20%, var(--brand-color) 0%, transparent 40%),
-                radial-gradient(circle at 0% 100%, rgba(255, 140, 0, 0.05) 0%, transparent 30%);
+                radial-gradient(circle at 100% 100%, rgba(255, 255, 255, 0.02) 0%, transparent 20%);
             background-attachment: fixed;
+            overflow-x: hidden;
         }
 
         .sport-font { font-family: 'Rajdhani', sans-serif; text-transform: uppercase; letter-spacing: 2px; }
         .digital-font { font-family: 'Orbitron', sans-serif; }
 
-        /* --- HEADER ESTILO MIDJOURNEY --- */
+        /* --- TÍTULO NIVEL ELITE --- */
         .cyber-header-title {
-            font-size: clamp(3rem, 10vw, 6rem);
+            font-size: clamp(2.5rem, 12vw, 7rem);
             font-weight: 900;
-            background: linear-gradient(to bottom, #fff 40%, rgba(255,255,255,0.1) 100%);
+            background: linear-gradient(to bottom, #fff 50%, rgba(255,255,255,0.1) 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
-            text-shadow: 0 0 30px rgba(255,255,255,0.1);
+            filter: drop-shadow(0 0 20px rgba(255,255,255,0.05));
         }
 
-        /* --- TARJETAS DEL RADAR (RECOSTRUCCIÓN TOTAL) --- */
+        /* --- ANIMACIONES DE ENTRADA --- */
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(30px); filter: blur(10px); }
+            to { opacity: 1; transform: translateY(0); filter: blur(0); }
+        }
+        .reveal { animation: fadeInUp 0.8s cubic-bezier(0.2, 1, 0.3, 1) forwards; }
+
+        /* --- TARJETAS DEL RADAR (ESTILO HUD) --- */
         .match-card { 
-            background: rgba(255, 255, 255, 0.02); 
+            background: var(--glass-bg); 
             border: 1px solid var(--glass-border); 
             backdrop-filter: blur(20px);
-            transition: 0.5s cubic-bezier(0.2, 1, 0.3, 1);
-            position: relative;
+            -webkit-backdrop-filter: blur(20px);
+            transition: 0.5s ease;
         }
+        .match-confirmed { border-color: var(--brand-color); box-shadow: 0 0 30px rgba(0, 242, 255, 0.05); }
+        .match-proposed { border-color: rgba(255, 255, 255, 0.1); border-style: dashed; }
 
-        .match-confirmed { 
-            border-color: var(--brand-color); 
-            box-shadow: 0 0 30px rgba(0, 242, 255, 0.1);
-            cursor: pointer;
-        }
-
-        .match-proposed { 
-            border-color: rgba(255, 204, 0, 0.2); 
-            border-style: dashed;
-            opacity: 0.7;
-        }
-
-        /* Luces de estado */
-        .status-light {
-            font-size: 8px;
-            padding: 4px 12px;
-            border-radius: 100px;
-            font-family: 'Orbitron';
-            letter-spacing: 2px;
-            font-weight: 900;
-        }
-        .light-confirmed { background: rgba(0, 242, 255, 0.1); color: var(--brand-color); border: 1px solid var(--brand-color); animation: pulse-blue 2s infinite; }
-        .light-pending { background: rgba(255, 204, 0, 0.1); color: var(--gold-color); border: 1px solid var(--gold-color); animation: pulse-gold 2s infinite; }
-
-        @keyframes pulse-blue { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; box-shadow: 0 0 15px var(--brand-color); } }
-        @keyframes pulse-gold { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; box-shadow: 0 0 15px var(--gold-color); } }
-
-        /* --- JUGADORES MIDJOURNEY --- */
+        /* --- JUGADORES MIDJOURNEY PREMIUM --- */
         .player-card-container {
             background: var(--glass-bg);
-            backdrop-filter: blur(25px);
+            backdrop-filter: blur(30px);
+            -webkit-backdrop-filter: blur(30px);
             border: 1px solid var(--glass-border);
-            transition: 0.6s ease;
+            border-radius: 28px;
+            transition: 0.7s cubic-bezier(0.19, 1, 0.22, 1);
         }
-        .player-card-container:hover { border-color: var(--brand-color); transform: translateY(-10px); }
+        .player-card-container:hover { 
+            border-color: var(--brand-color); 
+            transform: translateY(-12px) scale(1.01);
+            background: rgba(255,255,255,0.03);
+        }
 
-        .alive-photo { filter: grayscale(100%); transition: 1s ease; }
-        .player-card-container:hover .alive-photo { filter: grayscale(0%); transform: scale(1.05); }
+        .alive-photo { 
+            filter: grayscale(100%) brightness(0.8); 
+            transition: 1.2s cubic-bezier(0.19, 1, 0.22, 1); 
+        }
+        .player-card-container:hover .alive-photo { 
+            filter: grayscale(0%) brightness(1); 
+            transform: scale(1.08); 
+        }
 
+        .card-hud-overlay {
+            background: linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.2) 50%, transparent 100%);
+        }
+
+        /* --- TABS ESTILO NAVE ESPACIAL --- */
         .cat-tab {
-            padding: 10px 25px; font-family: 'Orbitron'; font-size: 10px; color: #444; border-radius: 100px; border: 1px solid transparent; transition: 0.4s;
+            padding: 10px 28px; font-family: 'Orbitron'; font-size: 10px; color: #555;
+            border-radius: 100px; border: 1px solid transparent; transition: 0.5s;
+            letter-spacing: 3px;
         }
-        .cat-tab.active { color: var(--brand-color); background: rgba(0, 242, 255, 0.05); border-color: rgba(0, 242, 255, 0.2); text-shadow: 0 0 15px var(--brand-color); }
+        .cat-tab.active { 
+            color: var(--brand-color); background: rgba(0, 242, 255, 0.03); 
+            border-color: rgba(0, 242, 255, 0.2); text-shadow: 0 0 15px var(--brand-color); 
+        }
+
+        /* --- MOBILE REFINEMENT --- */
+        @media (max-width: 640px) {
+            .player-card-container { height: 480px; }
+            .match-card { padding: 1.5rem !important; }
+        }
     </style>
 </head>
-<body class="min-h-screen pb-32">
+<body class="min-h-screen pb-40">
 
-    <!-- NAV -->
-    <nav class="fixed top-0 w-full z-50 px-8 h-24 flex items-center justify-between backdrop-blur-xl border-b border-white/5">
+    <!-- NAV MINIMALISTA -->
+    <nav class="fixed top-0 w-full z-50 px-6 md:px-12 h-24 flex items-center justify-between backdrop-blur-md border-b border-white/5">
         <div class="flex items-center gap-6">
-            <div class="h-12 w-20 rounded overflow-hidden bg-black border border-white/10 shadow-2xl">
-                <video autoplay loop muted playsinline class="w-full h-full object-cover">
+            <div class="h-10 w-16 md:h-12 md:w-20 rounded-lg overflow-hidden bg-black border border-white/10 shadow-2xl">
+                <video autoplay loop muted playsinline class="w-full h-full object-cover opacity-60">
                     <source src="/static/logo_pasto.mp4" type="video/mp4">
                 </video>
             </div>
             <div class="flex flex-col">
-                <span class="font-bold text-xl sport-font text-white/80">THE ARENA</span>
-                <span class="text-[9px] text-brand digital-font tracking-[0.4em] uppercase">Global Intelligence OS</span>
+                <span class="font-bold text-lg md:text-xl sport-font text-white/80">THE ARENA</span>
+                <span class="text-[8px] md:text-[9px] text-brand digital-font tracking-[0.4em] uppercase">Multi-Agent OS</span>
             </div>
         </div>
-        <div class="hidden lg:block text-[9px] digital-font text-white/20 tracking-widest">STATUS: <span class="text-green-500">OPERATIONAL</span></div>
+        <div class="hidden sm:block text-[9px] digital-font text-white/20 tracking-widest">SERVER_TIME: <span id="real-time" class="text-white/40">--:--</span></div>
     </nav>
 
-    <!-- HEADER -->
-    <div class="pt-48 pb-12 text-center">
+    <!-- HEADER FUTURISTA -->
+    <div class="pt-48 pb-16 text-center px-6 reveal">
         <h1 class="cyber-header-title sport-font">MURO DE LA FAMA</h1>
-        <div class="flex items-center justify-center gap-4 mt-[-15px] mb-16">
-            <div class="h-[1px] w-16 bg-brand/30"></div>
-            <p class="text-slate-500 text-[10px] tracking-[0.8em] uppercase font-light">Ecosistema de Prestigio Pasto.AI</p>
-            <div class="h-[1px] w-16 bg-brand/30"></div>
+        <div class="flex items-center justify-center gap-6 mt-[-10px] mb-16 opacity-30">
+            <div class="h-px w-20 bg-white"></div>
+            <p class="text-[10px] digital-font tracking-[0.8em] uppercase font-light">Ecosistema de Prestigio</p>
+            <div class="h-px w-20 bg-white"></div>
         </div>
         
-        <!-- CATEGORÍAS -->
-        <div class="flex flex-wrap justify-center gap-3 max-w-2xl mx-auto">
+        <div class="flex flex-wrap justify-center gap-3 max-w-4xl mx-auto">
             <button class="cat-tab active" onclick="filterCategory('TODOS', this)">ALL_UNITS</button>
             {% for cat in categorias %}
                 <button class="cat-tab" onclick="filterCategory('{{ cat.name }}', this)">{{ cat.name }}</button>
@@ -130,129 +139,122 @@
         </div>
     </div>
 
-    <div class="max-w-[1600px] mx-auto px-8">
+    <div class="max-w-[1700px] mx-auto px-6 md:px-12">
 
-        <!-- 🎾 LIVE COMBAT RADAR (NUEVA GENERACIÓN) -->
+        <!-- 🎾 RADAR DINÁMICO (ESTILO HUD 2030) -->
         {% if retos %}
-        <div class="mb-24">
-            <div class="flex items-center gap-4 mb-10 opacity-40">
-                <div class="h-[1px] flex-1 bg-white/10"></div>
-                <h2 class="text-[10px] digital-font tracking-[0.5em]">LIVE_DUELS_RADAR</h2>
-                <div class="h-[1px] flex-1 bg-white/10"></div>
+        <div class="mb-32 reveal" style="animation-delay: 0.2s;">
+            <div class="flex items-center gap-4 mb-12 opacity-40">
+                <h2 class="text-[10px] digital-font tracking-[0.6em]">LIVE_DUELS_MONITOR</h2>
+                <div class="h-px flex-1 bg-gradient-to-r from-white/10 to-transparent"></div>
             </div>
             
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                 {% for reto in retos %}
-                <div class="match-card rounded-2xl p-10 flex flex-col items-center group {{ 'match-confirmed' if reto.status == 'scheduled' else 'match-proposed' }}"
+                <div class="match-card rounded-3xl p-10 flex flex-col items-center group {{ 'match-confirmed' if reto.status == 'scheduled' else 'match-proposed' }}"
                      {% if reto.status == 'scheduled' %} onclick="window.location.href='/tablero?matchId={{ reto.id }}&p1={{ reto.player_1.name }}&p2={{ reto.player_2.name }}'" {% endif %}>
                     
-                    <!-- ESTADO HUD -->
-                    <div class="mb-6">
+                    <div class="mb-8">
                         {% if reto.status == 'scheduled' %}
-                            <span class="status-light light-confirmed">COMBATE_CONFIRMADO</span>
+                            <span class="digital-font text-[9px] text-brand border border-brand/40 bg-brand/5 px-4 py-1.5 rounded-full animate-pulse tracking-[0.3em]">CONFIRMADO</span>
                         {% else %}
-                            <span class="status-light light-pending">ESPERANDO_RESPUESTA</span>
+                            <span class="digital-font text-[9px] text-yellow-500/60 border border-yellow-500/20 px-4 py-1.5 rounded-full tracking-[0.3em]">EN_ESPERA</span>
                         {% endif %}
                     </div>
 
                     <div class="flex justify-between items-center w-full">
                         <div class="text-center w-5/12">
-                            <div class="text-2xl font-bold text-white sport-font tracking-tighter">{{ reto.player_1.name.split(' ')[0] }}</div>
-                            <div class="text-[8px] text-white/30 digital-font mt-2">UNIT_ALFA</div>
+                            <div class="text-2xl md:text-3xl font-bold text-white sport-font tracking-tighter">{{ reto.player_1.name.split(' ')[0] }}</div>
+                            <div class="text-[8px] text-white/20 digital-font mt-2 tracking-widest">ALFA_UNIT</div>
                         </div>
-
                         <div class="w-2/12 flex justify-center">
-                            <span class="text-3xl font-black text-white/5 sport-font italic group-hover:text-brand/20 transition-all">VS</span>
+                            <span class="text-4xl font-black text-white/5 sport-font italic group-hover:text-brand/20 transition-all duration-700">VS</span>
                         </div>
-
                         <div class="text-center w-5/12">
-                            <div class="text-2xl font-bold text-white sport-font tracking-tighter">{{ reto.player_2.name.split(' ')[0] }}</div>
-                            <div class="text-[8px] text-white/30 digital-font mt-2">UNIT_BETA</div>
+                            <div class="text-2xl md:text-3xl font-bold text-white sport-font tracking-tighter">{{ reto.player_2.name.split(' ')[0] }}</div>
+                            <div class="text-[8px] text-white/20 digital-font mt-2 tracking-widest">BETA_UNIT</div>
                         </div>
                     </div>
 
-                    <!-- FECHA Y HORA (CON FECHA REAL) -->
-                    <div class="mt-8 pt-6 border-t border-white/5 w-full flex justify-center gap-10">
-                        <div class="flex flex-col items-center">
-                            <span class="text-[8px] text-white/20 digital-font mb-1">DATA_LNK</span>
-                            <span class="text-xs digital-font text-white/60 tracking-widest">
-                                {{ reto.scheduled_time.strftime('%a %d • %b') if reto.scheduled_time else 'TBD' }}
-                            </span>
+                    <div class="mt-10 pt-8 border-t border-white/5 w-full flex justify-around">
+                        <div class="text-center">
+                            <p class="text-[8px] text-white/20 digital-font mb-2 tracking-widest">CALENDAR_DATA</p>
+                            <p class="text-xs digital-font text-white/70">{{ reto.scheduled_time.strftime('%a %d %b') if reto.scheduled_time else 'TBD' }}</p>
                         </div>
-                        <div class="flex flex-col items-center">
-                            <span class="text-[8px] text-white/20 digital-font mb-1">SYNC_TIME</span>
-                            <span class="text-sm digital-font text-brand font-black">
-                                {{ reto.scheduled_time.strftime('%I:%M %p') if reto.scheduled_time else 'TBD' }}
-                            </span>
+                        <div class="text-center">
+                            <p class="text-[8px] text-white/20 digital-font mb-2 tracking-widest">SYNC_TIME</p>
+                            <p class="text-sm digital-font text-brand font-black">{{ reto.scheduled_time.strftime('%I:%M %p') if reto.scheduled_time else 'TBD' }}</p>
                         </div>
                     </div>
-                    
-                    <!-- Brillo de fondo sutil -->
-                    <div class="absolute inset-0 bg-brand/5 opacity-0 group-hover:opacity-10 transition-opacity"></div>
                 </div>
                 {% endfor %}
             </div>
         </div>
         {% endif %}
 
-        <!-- ✅ GRID DE GUERREROS -->
-        <div id="player-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
+        <!-- ✅ EL MURO (GRID DE GUERREROS RESPONSIVO) -->
+        <div id="player-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6 md:gap-8 reveal" style="animation-delay: 0.4s;">
             {% for jugador in jugadores %}
-            <div class="player-card-container relative h-[520px] rounded-3xl overflow-hidden group cursor-pointer" 
+            <div class="player-card-container relative h-[550px] overflow-hidden group cursor-pointer" 
                  data-categorias="{{ jugador.categorias | join(' ') }}">
                 
-                <div class="absolute top-6 right-6 z-20 bg-black/50 backdrop-blur-md px-3 py-1 rounded border border-white/10 flex flex-col items-end">
-                    <span class="text-[7px] text-white/40 font-bold uppercase">Monthly</span>
-                    <span class="text-brand font-black digital-font text-xs">{{ jugador.monthly_points if jugador.monthly_points else 0 }}</span>
+                <!-- TOP HUD -->
+                <div class="absolute top-6 right-6 z-20 bg-black/60 backdrop-blur-xl px-4 py-2 rounded-xl border border-white/5 flex flex-col items-end">
+                    <span class="text-[7px] text-white/30 font-bold uppercase tracking-widest">Monthly_XP</span>
+                    <span class="text-brand font-black digital-font text-sm">{{ jugador.monthly_points if jugador.monthly_points else 0 }}</span>
                 </div>
 
+                <!-- PHOTO ENGINE -->
                 {% if jugador.avatar_url %}
                     <img src="{{ jugador.avatar_url }}?v={{ range(1, 999) | random }}" 
                          class="absolute inset-0 w-full h-full object-cover alive-photo">
                 {% else %}
                     <div class="absolute inset-0 bg-zinc-900 flex items-center justify-center">
-                        <span class="text-8xl font-black text-white/5 sport-font">{{ jugador.name[:1].upper() }}</span>
+                        <span class="text-9xl font-black text-white/5 sport-font">{{ jugador.name[:1] }}</span>
                     </div>
                 {% endif %}
                 
-                <div class="absolute inset-0 card-hud flex flex-col justify-end p-8 z-10">
-                    <div class="flex justify-between items-end mb-4">
+                <!-- DATA HUD OVERLAY -->
+                <div class="absolute inset-0 card-hud-overlay flex flex-col justify-end p-8 z-10">
+                    <div class="flex justify-between items-end mb-6">
                         <div class="flex flex-col">
-                            <span class="text-5xl font-black text-white/10 sport-font index-number italic">#{{ loop.index }}</span>
-                            <div class="flex gap-1 mt-2">
+                            <span class="text-6xl font-black text-white/10 sport-font index-number italic">#{{ loop.index }}</span>
+                            <div class="flex gap-1.5 mt-2">
                                 {% for i in range(jugador.stars) %}
-                                    <i class="fa-solid fa-star text-brand text-[7px] drop-shadow-[0_0_8px_var(--brand-color)]"></i>
+                                    <i class="fa-solid fa-star text-brand text-[8px] drop-shadow-[0_0_10px_var(--brand-color)]"></i>
                                 {% endfor %}
                             </div>
                         </div>
                         <div class="text-right">
-                            <span class="text-[7px] text-white/40 digital-font uppercase">SEASON_XP</span>
-                            <span class="block text-4xl font-black text-brand digital-font leading-none">{{ jugador.season_points }}</span>
+                            <span class="text-[7px] text-white/40 digital-font tracking-widest">SEASON_POINTS</span>
+                            <span class="block text-5xl font-black text-brand digital-font leading-none">{{ jugador.season_points }}</span>
                         </div>
                     </div>
 
-                    <div class="pt-4 border-t border-white/5">
-                        <h3 class="text-2xl font-bold text-white sport-font leading-tight mb-2">{{ jugador.name }}</h3>
-                        <div class="flex justify-between items-center bg-white/5 px-3 py-2 rounded-lg border border-white/5">
-                            <span class="text-[7px] text-white/30 digital-font uppercase">Legend</span>
-                            <span class="text-[10px] font-bold text-white digital-font">{{ jugador.eternal_points | int }} XP</span>
+                    <div class="pt-6 border-t border-white/10">
+                        <h3 class="text-2xl md:text-3xl font-bold text-white sport-font leading-tight mb-2 truncate">{{ jugador.name }}</h3>
+                        <div class="flex justify-between items-center bg-white/5 px-4 py-2.5 rounded-xl border border-white/5">
+                            <span class="text-[8px] text-white/30 digital-font tracking-widest uppercase">Legacy_Level</span>
+                            <span class="text-xs font-bold text-white digital-font">{{ jugador.eternal_points | int }} XP</span>
                         </div>
                     </div>
                 </div>
+                
+                <div class="absolute inset-0 border-2 border-brand/0 group-hover:border-brand/20 transition-all rounded-3xl duration-1000"></div>
             </div>
             {% endfor %}
         </div>
     </div>
 
-    <!-- SPONSOR CAPSULE -->
+    <!-- SPONSOR CAPSULE MODERNA -->
     {% if sponsor.activo %}
-    <a href="https://wa.me/{{ sponsor.whatsapp }}?text={{ sponsor.mensaje }}" target="_blank" class="fixed bottom-10 right-10 flex items-center gap-4 bg-white/5 backdrop-blur-2xl text-white px-6 py-4 rounded-full border border-white/10 hover:border-brand/40 hover:scale-105 transition-all z-50">
-        <div class="h-8 w-8 rounded-full overflow-hidden bg-white/10 p-1 flex items-center justify-center border border-white/10">
+    <a href="https://wa.me/{{ sponsor.whatsapp }}?text={{ sponsor.mensaje }}" target="_blank" class="fixed bottom-8 left-1/2 -translate-x-1/2 sm:left-auto sm:right-10 sm:translate-x-0 flex items-center gap-5 bg-white/5 backdrop-blur-3xl text-white px-8 py-5 rounded-full border border-white/10 hover:border-brand/50 hover:scale-105 transition-all z-50 shadow-2xl">
+        <div class="h-8 w-8 rounded-full overflow-hidden bg-white/10 p-1.5 flex items-center justify-center border border-white/10">
             <img src="{{ sponsor.logo }}" class="w-full h-auto object-contain" alt="Sponsor">
         </div>
-        <div class="flex flex-col items-start border-l border-white/10 pl-4">
-            <span class="text-[7px] digital-font text-white/40 uppercase tracking-widest">Connect_Agent</span>
-            <span class="text-[10px] font-black text-brand sport-font">{{ sponsor.cta }} <i class="fa-solid fa-arrow-right ml-1"></i></span>
+        <div class="flex flex-col items-start border-l border-white/10 pl-5">
+            <span class="text-[8px] digital-font text-white/30 uppercase tracking-[0.3em]">Membership_Access</span>
+            <span class="text-xs font-bold sport-font text-brand tracking-widest">{{ sponsor.cta }} <i class="fa-solid fa-arrow-right ml-3"></i></span>
         </div>
     </a>
     {% endif %}
@@ -266,6 +268,12 @@
                 setTimeout(() => location.reload(), 200); 
             } 
         };
+
+        // Reloj en tiempo real para el Nav (Toque 2030)
+        setInterval(() => {
+            const now = new Date();
+            document.getElementById('real-time').innerText = now.toLocaleTimeString('es-CO', {hour: '2-digit', minute:'2-digit', second:'2-digit'});
+        }, 1000);
 
         function filterCategory(catName, btn) {
             document.querySelectorAll('.cat-tab').forEach(b => b.classList.remove('active'));
