@@ -96,7 +96,7 @@ class MembershipAgent:
             
             return {
                 "status": "welcome_new_socio", 
-                "reply": f"¡Es un privilegio recibirlo, {nombre}! 🏆\n\nUsted ha sido acreditado como **Socio Fundador** de la Arena. Por cortesía de **Pasto.AI**, su participación inicial es totalmente gratuita bajo nuestra Beca de Innovación.{txt_categorias}\n\n📸 **ACCIÓN REQUERIDA:** Para activar su tarjeta neón en el Muro de la Riqueza, envíeme una selfie ahora mismo. Este paso habilitará su acceso a los desafíos de gloria.",
+                "reply": f"¡Es un privilegio recibirlo, {nombre}! 🏆\n\nUsted ha sido acreditado como **Socio Fundador** de la Arena. Por cortesía de **Pasto.AI**, su participación inicial es totalmente gratuita bajo nuestra Beca de Innovación.{txt_categorias}\n\n📸 **ACCIÓN REQUERIDA:** Para activar su tarjeta neón en el Muro de la Fama, envíeme una selfie ahora mismo. Este paso habilitará su acceso a los desafíos de gloria.",
                 "data": {"jugador_id": nuevo_jugador.id}
             }
         except Exception as e:
@@ -104,17 +104,24 @@ class MembershipAgent:
             print(f"❌ Error en registro: {e}")
             return {"status": "error", "reply": "Inconsistencia técnica en el registro de socio."}
 
-    def actualizar_foto(self, telefono_usuario, ruta_foto):
+    def actualizar_foto(self, telefono_usuario, ruta_foto, es_demo=False):
         """
         Audita la foto y decide si el socio está listo para elegir categoría o jugar.
+        🆕 MEJORA: Añadido parámetro es_demo para el Pase de Invitado.
         """
         usuario = self.db.query(WhatsAppUser).filter_by(phone_number=telefono_usuario).first()
         
         if usuario and usuario.players:
             jugador = usuario.players[0]
             
-            # Auditoría visual IA
-            es_apta = self.auditar_selfie(ruta_foto)
+            # --- 🆕 LÓGICA DEL PASE DE INVITADO ---
+            if es_demo:
+                print(f"\033[1;33m🎟️ [PASE_VIP] -> Omitiendo auditoría visual para la Demo de {jugador.name}.\033[0m")
+                es_apta = True
+            else:
+                # Auditoría visual IA real
+                es_apta = self.auditar_selfie(ruta_foto)
+            # ---------------------------------------
             
             if not es_apta:
                 return {
@@ -136,7 +143,7 @@ class MembershipAgent:
                     msg_exito = f"¡Excelente, Miembro Fundador {jugador.name}! 📸 Identidad verificada. Su tarjeta ya brilla en la web.\n\nPara finalizar, ¿en cuál de nuestras ligas desea competir? (Opciones: {', '.join([c.name for c in categorias_club])})"
                 else:
                     usuario.memory["step"] = "ready_to_play"
-                    msg_exito = f"¡Excelente, Miembro Fundador {jugador.name}! 📸 Identidad verificada. Su tarjeta ya brilla en el Muro de la Riqueza.\n\nLa Arena es suya. ¿A quién desea desafiar hoy?"
+                    msg_exito = f"¡Excelente, Miembro Fundador {jugador.name}! 📸 Identidad verificada. Su tarjeta ya brilla en el Muro de la Fama.\n\nLa Arena es suya. ¿A quién desea desafiar hoy?"
                 
                 flag_modified(usuario, "memory")
                 self.db.commit()

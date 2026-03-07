@@ -44,8 +44,8 @@ class Orchestrator:
 
     def procesar_intencion(self, intencion: dict):
         """
-        MOTOR AGÉNTICO V18.5 - EDICIÓN "MURO DE LA FAMA".
-        Misión: Gestión autónoma total con persistencia de contexto y seguridad blindada.
+        MOTOR AGÉNTICO V18.0 - EDICIÓN "MURO DE LA FAMA".
+        Misión: Gestión autónoma total con distinción de privilegios y análisis de competencia.
         """
         tipo = intencion.get("tipo")
         datos_nuevos = intencion.get("datos", {})
@@ -54,13 +54,16 @@ class Orchestrator:
         rol = self.contexto.get("rol")
         nombre_contexto = self.contexto.get("nombre", "Socio")
         
+        # 🆕 Capturamos si la orden viene de una simulación
+        es_demo = intencion.get("es_demo", False)
+        
         # ============================================================
         # 🛡️ CAPA 1: SEGURIDAD (WHITELIST)
         # ============================================================
         if rol == "NO_AUTORIZADO":
             return {
                 "status": "access_denied",
-                "orden_ia": "ORDEN: Informe con distinción que el acceso al Muro de la Fama es exclusivo para socios autorizados."
+                "orden_ia": "ORDEN: Informe con distinción que el acceso es exclusivo para socios autorizados del Muro de la Fama."
             }
 
         # 1. [OBSERVAR] - Identificación de Usuario y Memoria Persistente
@@ -88,18 +91,18 @@ class Orchestrator:
         # 🛠️ CAPA 2: COMANDOS ADMINISTRATIVOS (GLOBALES / CEO)
         # ============================================================
         
-        # A. AUTORIZAR NUEVO SOCIO (PARCHE DE SEGURIDAD PARA MARIA PAULA)
+        # A. AUTORIZAR NUEVO SOCIO (MEJORADO: Evita errores por Maria Paula)
         if tipo == "autorizar_socio" and rol in ["SUPER_ADMIN", "ADMIN"]:
             tel_a_autorizar = datos_nuevos.get("telefono_a_autorizar")
             nombre_invitado = datos_nuevos.get("nombre_a_autorizar") or "Socio Invitado"
             if not tel_a_autorizar:
-                return {"status": "info", "perfil_socio": expediente, "orden_ia": "ORDEN: Solicite el número de teléfono para habilitar al socio."}
+                return {"status": "info", "perfil_socio": expediente, "orden_ia": "ORDEN: Solicite el número de teléfono."}
             try:
-                # 🛡️ REGLA DE ORO: Evitar errores de duplicidad
+                # 🛡️ PASO DE SEGURIDAD: ¿Ya existe en la lista?
                 socio_existente = self.db.query(WhiteList).filter_by(phone_number=tel_a_autorizar).first()
                 if socio_existente:
-                    print(f"\033[1;33mℹ️ [DEDUPLICACIÓN] -> El número {tel_a_autorizar} ya tiene acceso activo.\033[0m")
-                    return {"status": "auth_success", "perfil_socio": expediente, "orden_ia": f"ORDEN: Confirme al CEO que {nombre_invitado} ya tiene su acceso activo al Muro de la Fama."}
+                    print(f"\033[1;33mℹ️ [DEDUPLICACIÓN] -> El número {tel_a_autorizar} ya estaba autorizado.\033[0m")
+                    return {"status": "auth_success", "perfil_socio": expediente, "orden_ia": f"ORDEN: Informe al Jefe que {nombre_invitado} ya tiene su acceso activo al Muro de la Fama."}
 
                 print(f"\033[1;31m⚡ [COMANDO CEO] -> Autorizando acceso para: {tel_a_autorizar}\033[0m")
                 nueva_aut = WhiteList(phone_number=tel_a_autorizar, full_name=nombre_invitado, club_id=club_id, is_active=True)
@@ -107,7 +110,7 @@ class Orchestrator:
                 print(f"\033[1;32m🔐 [DB_ACTION] -> WhiteList actualizada.\033[0m")
                 return {"status": "auth_success", "perfil_socio": expediente, "orden_ia": f"ORDEN: Confirme que el socio {nombre_invitado} ha sido habilitado para entrar al Muro de la Fama."}
             except Exception as e:
-                self.db.rollback(); return {"status": "error", "orden_ia": f"ORDEN: Error técnico en autorización: {str(e)}"}
+                self.db.rollback(); return {"status": "error", "orden_ia": f"ORDEN: Error técnico: {str(e)}"}
 
         # B. CONFIGURAR MENÚ DE CATEGORÍAS
         if tipo == "configurar_categorias" and rol in ["SUPER_ADMIN", "ADMIN"]:
@@ -139,7 +142,7 @@ class Orchestrator:
                 "status": "reporte_analitico",
                 "perfil_socio": expediente,
                 "analisis": reporte_analista,
-                "orden_ia": f"ORDEN: Actúe como un estratega de élite. Explique que ganar da 10 pts y participar 3 pts. Use los datos {json.dumps(reporte_analista)} para motivar al socio hacia la cima del Muro de la Fama."
+                "orden_ia": f"ORDEN: Actúe como un estratega de élite. Explique que ganar da 10 pts y participar 3 pts. Use los datos {json.dumps(reporte_analista)} para mostrarle su camino exacto a la cima del Muro de la Fama."
             }
 
         # ============================================================
@@ -149,7 +152,7 @@ class Orchestrator:
             print(f"\033[1;34m[RELEVO] -> Orquestador DELEGA a MembershipAgent para registro inicial.\033[0m")
             return self.membership.registrar_jugador(nombre_contexto, telefono, club_id)
 
-        if not jugador: return {"status": "chat", "orden_ia": "ORDEN: Sincronizando acceso al Muro de la Fama."}
+        if not jugador: return {"status": "chat", "orden_ia": "ORDEN: Sincronizando acceso de socio."}
 
         paso_actual = usuario_db.memory.get("step", "idle")
         tiene_foto = True if (jugador and jugador.avatar_url) else False
@@ -163,11 +166,12 @@ class Orchestrator:
 
         if tipo == "enviar_comprobante":
             if not tiene_foto:
-                return self.membership.actualizar_foto(telefono, f"static/profiles/{telefono}.jpg")
+                # 🆕 AGREGADO: Pasamos el flag 'es_demo' para activar el Pase VIP en la Auditoría
+                return self.membership.actualizar_foto(telefono, f"static/profiles/{telefono}.jpg", es_demo=es_demo)
             else:
                 reporte_pago = self.finance.auditar_recibo(f"static/profiles/{telefono}.jpg")
                 if reporte_pago:
-                    return {"status": "payment_audited", "perfil_socio": expediente, "datos_visuales": reporte_pago["analisis_visual"], "veredicto": reporte_pago["veredicto"], "orden_ia": "ORDEN: Confirme pago para el Muro de la Fama."}
+                    return {"status": "payment_audited", "perfil_socio": expediente, "datos_visuales": reporte_pago["analisis_visual"], "veredicto": reporte_pago["veredicto"], "orden_ia": "ORDEN: Confirme pago de membresía."}
 
         if not tiene_foto: return {"status": "remind_selfie", "orden_ia": f"ORDEN: Pida la selfie obligatoria para activar su tarjeta en el Muro de la Fama."}
 
@@ -178,10 +182,9 @@ class Orchestrator:
 
         if tipo == "agradecimiento":
             print(f"\033[1;93m✨ [EMPATÍA] -> Respondiendo a la cortesía de {jugador.name}.\033[0m")
-            return {"status": "agradecimiento_final", "perfil_socio": expediente, "orden_ia": "ORDEN: Responda con elegancia humana y despídase como anfitrión del Muro de la Fama."}
+            return {"status": "agradecimiento_final", "perfil_socio": expediente, "orden_ia": "ORDEN: Responda con elegancia humana y despídase del Muro de la Fama."}
 
-        # ✅ MEJORA: Unificamos las intenciones de reto para mantener la memoria viva
-        if tipo in ["crear_reto", "reproponer_reto", "reproponer_fecha"]:
+        if tipo == "crear_reto":
             slots = usuario_db.memory.get("slots_reto", {})
             for k in ["rival", "dia", "hora", "fecha_iso", "categoria"]:
                 val = datos_nuevos.get(k)
@@ -189,18 +192,18 @@ class Orchestrator:
             usuario_db.memory["slots_reto"] = slots
             flag_modified(usuario_db, "memory"); self.db.commit()
 
-            if not slots.get("rival"): return {"status": "explain_challenge", "perfil_socio": expediente, "orden_ia": "ORDEN: Pida el rival para el duelo."}
+            if not slots.get("rival"): return {"status": "explain_challenge", "perfil_socio": expediente, "orden_ia": "ORDEN: Pida el rival."}
             categorias_club = self.db.query(Category).filter_by(club_id=club_id).all()
             if len(categorias_club) > 1 and not slots.get("categoria"):
-                return {"status": "ask_category", "perfil_socio": expediente, "orden_ia": f"ORDEN: Pregunte en qué liga del Muro de la Fama desea el reto: {', '.join([c.name for c in categorias_club])}."}
-            if not slots.get("dia"): return {"status": "ask_date", "perfil_socio": expediente, "orden_ia": f"ORDEN: ¿Qué día para el reto contra {slots['rival']} en el Muro de la Fama?"}
-            if not slots.get("hora"): return {"status": "ask_time", "perfil_socio": expediente, "orden_ia": f"ORDEN: ¿A qué hora el reto contra {slots['rival']}?"}
+                return {"status": "ask_category", "perfil_socio": expediente, "orden_ia": f"ORDEN: Pregunte la categoría: {', '.join([c.name for c in categorias_club])}."}
+            if not slots.get("dia"): return {"status": "ask_date", "perfil_socio": expediente, "orden_ia": f"ORDEN: ¿Qué día para el reto contra {slots['rival']}?"}
+            if not slots.get("hora"): return {"status": "ask_time", "perfil_socio": expediente, "orden_ia": f"ORDEN: ¿A qué hora el reto?"}
 
             print(f"\033[1;34m[RELEVO] -> Orquestador DELEGA a BookingAgent: {jugador.name} vs {slots['rival']}\033[0m")
             res_reto = self.booking.agendar_reto(jugador.name, slots["rival"], slots["fecha_iso"], club_id)
             if res_reto["status"] == "challenge_proposed":
                 usuario_db.memory["slots_reto"] = {}; flag_modified(usuario_db, "memory"); self.db.commit()
-                return {"status": "challenge_scheduled", "perfil_socio": expediente, "notificar_a": res_reto["telefono_rival"], "mensaje_proactivo": f"🎾 ¡Hola {res_reto['rival']}! {jugador.name} le envió un reto al Muro de la Fama.", "orden_ia": "ORDEN: Confirma el envío del reto."}
+                return {"status": "challenge_scheduled", "perfil_socio": expediente, "notificar_a": res_reto["telefono_rival"], "mensaje_proactivo": f"🎾 ¡Hola {res_reto['rival']}! {jugador.name} le envió un desafío para el Muro de la Fama.", "orden_ia": "ORDEN: Confirma el envío del reto."}
             if res_reto["status"] in ["warning", "error"]: return {"status": "info", "perfil_socio": expediente, "orden_ia": f"ORDEN: Informe: {res_reto.get('reply')}"}
             return res_reto
 
@@ -208,12 +211,12 @@ class Orchestrator:
             match_p = self.db.query(Match).filter(Match.player_2_id == jugador.id, Match.status == "proposed", Match.is_finished == False).first()
             if match_p:
                 match_p.status = "scheduled"; self.db.commit()
-                return {"status": "challenge_confirmed", "perfil_socio": expediente, "notificar_a": match_p.player_1.owner.phone_number, "mensaje_proactivo": f"✅ ¡Duelo confirmado en el Muro de la Fama! {jugador.name} aceptó.", "orden_ia": "ORDEN: Celebra la confirmación y la valentía."}
-            return {"status": "chat", "perfil_socio": expediente, "orden_ia": "ORDEN: No hay retos pendientes en el Muro de la Fama."}
+                return {"status": "challenge_confirmed", "perfil_socio": expediente, "notificar_a": match_p.player_1.owner.phone_number, "mensaje_proactivo": f"✅ ¡Duelo confirmado en el Muro de la Fama! {jugador.name} aceptó.", "orden_ia": "ORDEN: Celebra la confirmación."}
+            return {"status": "chat", "perfil_socio": expediente, "orden_ia": "ORDEN: No hay retos pendientes."}
 
         # --- RESPUESTA POR DEFECTO ---
         return {
             "status": "chat_asistente",
             "perfil_socio": expediente,
-            "orden_ia": f"ORDEN: Saluda cordialmente a {jugador.name}. Invítalo a ganar sus 10 puntos de victoria para subir en el Muro de la Fama."
+            "orden_ia": f"ORDEN: Saluda cordialmente a {jugador.name}. Ofrécele ganar sus 10 puntos de victoria para subir en el Muro de la Fama."
         }

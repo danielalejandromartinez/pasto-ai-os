@@ -201,7 +201,11 @@ async def procesar_mensaje_ia(telefono: str, texto: str, tipo: str, enviar_real:
         # ----------------------------------------------------
 
         usuario_contexto = user_classifier.clasificar_usuario(telefono)
+        
+        # --- 🆕 AGREGADO: Marcamos la intención como Demo si viene del simulador ---
         intencion = {"tipo": "enviar_comprobante"} if tipo == 'image' else intent_resolver.analizar_intencion(texto, usuario_contexto, historial_chat)
+        intencion["es_demo"] = not enviar_real 
+        # -------------------------------------------------------------------------
 
         orquestador = Orchestrator(db, usuario_contexto)
         resultado = orquestador.procesar_intencion(intencion)
@@ -256,7 +260,6 @@ async def chat_local():
             .msg { max-width: 85%; padding: 16px 22px; border-radius: 20px; font-size: 14px; line-height: 1.6; border: 1px solid transparent; }
             .user { align-self: flex-end; background: var(--neon); color: black; font-weight: 800; border-bottom-right-radius: 4px; box-shadow: 0 5px 15px rgba(0,242,255,0.2); }
             .bot { align-self: flex-start; background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.1); border-bottom-left-radius: 4px; color: #ccc; }
-            .proactive { border-color: #ff8c00; color: #ff8c00; font-style: italic; background: rgba(255,140,0,0.05); font-size: 12px; }
             .input-area { padding: 30px; border-top: 1px solid rgba(255,255,255,0.05); background: rgba(0,0,0,0.4); }
             select, input { width: 100%; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); padding: 18px; color: white; border-radius: 15px; outline: none; font-family: 'Rajdhani'; margin-bottom: 20px; font-size: 16px; }
             select { color: var(--neon); font-family: 'Orbitron'; font-size: 10px; font-weight: bold; letter-spacing: 2px; }
@@ -271,7 +274,7 @@ async def chat_local():
         <div class="terminal">
             <div class="header">
                 <h1>SANDBOX_OS_2030</h1>
-                <div style="font-size: 8px; opacity: 0.3; margin-top: 8px;">VIRTUAL_IDENTITY_CONTROL</div>
+                <div style="font-size: 8px; opacity: 0.3; margin-top: 8px; letter-spacing: 2px;">VIRTUAL_IDENTITY_CONTROL</div>
             </div>
             <div id="chat" class="chat-box">
                 <div class="msg bot">Vínculo establecido. Seleccione una identidad de la lista para simular el comando.</div>
