@@ -7,23 +7,25 @@ client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 def redactar(resultado_accion: dict, usuario_contexto: dict):
     """
-    LA VOZ DE ALEJANDRO V13.0 - EDICIÓN "ENFOQUE EN MISIÓN".
-    Misión: Interfaz autónoma VIP con jerarquía de prioridades y conciencia de datos.
+    LA VOZ DE ALEJANDRO V14.0 - EDICIÓN "SELLO DE SEGURIDAD MULTI-TENANT".
+    Misión: Interfaz autónoma VIP. La IA genera el lenguaje, el sistema inyecta los datos críticos.
     """
     nombre_usuario = usuario_contexto.get("nombre", "Campeón")
+    club_id = usuario_contexto.get("club_id", 1) # Obtenemos el ID real del club del usuario
     status = resultado_accion.get("status")
     
     # --- EXTRACCIÓN DE DATOS TÉCNICOS Y VISUALES ---
     datos_v = resultado_accion.get("datos_visuales", {})
     veredicto = resultado_accion.get("veredicto", {})
-    perfil = resultado_accion.get("perfil_socio", {}) # El expediente que viene del Orquestador
+    perfil = resultado_accion.get("perfil_socio", {})
     orden_tecnica = resultado_accion.get("orden_ia") or resultado_accion.get("mensaje") or "Atiende al socio."
     
-    # 🚀 LINK OFICIAL PARA LA DEMO
-    link_ranking = "https://consoles-untitled-mail-shake.trycloudflare.com/club/1"
+    # 🛡️ MARCADOR DE SEGURIDAD (Placeholder)
+    # Alejandro NO escribirá links reales, usará esta etiqueta.
+    MARCADOR_LINK = "{{LINK_RANKING}}"
 
     # 🎨 [LOG DE OBSERVABILIDAD]
-    print(f"\033[37m[VOZ/ALEJANDRO] -> Ejecutando Comunicación de Alta Gama para: {status}\033[0m")
+    print(f"\033[37m[VOZ/ALEJANDRO] -> Redactando con Sello de Seguridad para Club ID: {club_id}\033[0m")
 
     # --- CONSTRUCCIÓN DEL DOSSIER REAL DEL SOCIO ---
     resumen_perfil_txt = "No disponible actualmente."
@@ -38,72 +40,64 @@ def redactar(resultado_accion: dict, usuario_contexto: dict):
 
     # --- EL MANUAL DE PROTOCOLO AGÉNTICO (System Prompt Maestro) ---
     contexto_agente = f"""
-    Eres Alejandro, el Gerente de Innovación del Club Colombia. ERES un anfitrión ejecutivo de gran lujo.
+    Eres Alejandro, el Gerente de Innovación del Club. ERES un anfitrión ejecutivo de gran lujo.
     
     ### EXPEDIENTE DEL SOCIO:
     {resumen_perfil_txt}
 
     REGLAS DE ORO DE COMUNICACIÓN (CRÍTICO):
-    1. PRIORIDAD DE MISIÓN: Si la 'ORDEN TÉCNICA' solicita un dato (categoría, día, hora), tu prioridad número uno es pedir ese dato de forma clara. NO permitas que los datos del expediente (puntos/saldo) distraigan al socio de completar la acción.
-    2. CONCIENCIA DE DATOS: Usa el expediente para personalizar, pero no para charlar sin sentido. Ejemplo: Si el socio pregunta cuánto tiene, responde con el saldo exacto del expediente.
-    3. PROHIBIDO INVENTAR: No uses sinónimos para categorías. Si la orden dice "Pro, Intermedio, Novato", usa esos nombres EXACTAMENTE.
-    4. CERO COMPORTAMIENTO DE ASISTENTE: Prohibido decir "Claro", "Aquí tienes", "Esta es la versión". Habla como un Gerente Real.
-    5. IDENTIDAD: Solo preséntate como Alejandro en 'welcome_new_socio'.
-    6. BRANDING: Firma siempre con: "Innovación deportiva por Pasto.AI".
-    7. SEGUNDA PERSONA: Dirígete al socio con absoluta distinción y respeto (Tú/Usted).
+    1. PROHIBIDO ESCRIBIR URLS: Tienes terminantemente prohibido inventar o escribir una dirección web (http/www). 
+    2. SELLO DE SEGURIDAD: Siempre que necesites referenciar el sitio web o el ranking del club, escribe EXACTAMENTE este código: {MARCADOR_LINK}. El sistema lo reemplazará por el link correcto después.
+    3. PRIORIDAD DE MISIÓN: Si la 'ORDEN TÉCNICA' solicita un dato, pídelo de forma clara. No te distraigas con el expediente.
+    4. CERO COMPORTAMIENTO DE ASISTENTE: Habla como un Gerente de Élite. No digas "Claro", "Aquí tienes".
+    5. BRANDING: Firma siempre con: "Innovación deportiva por Pasto.AI".
     """
 
     # --- MAPEADO DE MISIONES SEGÚN EL ESTADO DEL LOOP ---
     
-    # A. BIENVENIDA (Presentación oficial)
+    # A. BIENVENIDA
     if status == "welcome_new_socio":
-        mision_ia = f"Bienvenida oficial. Preséntate. Explica que inicia con 0.0 XP como Fundador y pide selfie para activar su tarjeta VIP en {link_ranking}."
+        mision_ia = f"Bienvenida oficial. Pide selfie para activar su tarjeta VIP en el Muro de la Fama visitando {MARCADOR_LINK}."
 
     # B. FOTO APROBADA + PEDIR CATEGORÍA INICIAL
     elif status == "ask_initial_category":
-        mision_ia = f"Felicita por la selfie. Informa que su tarjeta ya brilla en {link_ranking}. Ahora pide elegir su categoría entre las opciones literales: {orden_tecnica}."
+        mision_ia = f"Felicita por la selfie. Informa que su tarjeta ya brilla en {MARCADOR_LINK}. Pide elegir categoría: {orden_tecnica}."
 
     # C. LIGA/CATEGORÍA ASIGNADA
     elif status == "category_assigned":
-        mision_ia = f"Confirma que ya pertenece a la categoría oficial. Perfil 100% activo en {link_ranking}. Invítalo al combate."
+        mision_ia = f"Confirma categoría oficial. Perfil activo en {MARCADOR_LINK}. Invítalo al combate."
 
-    # D. AUDITORÍA DE PAGO (EFECTO WOW)
+    # D. AUDITORÍA DE PAGO
     elif status == "payment_audited":
         if veredicto.get("es_valido"):
-            mision_ia = f"Confirma que VISTE el recibo mencionando: Monto {datos_v.get('monto')}, Fecha {datos_v.get('fecha')} y Referencia {datos_v.get('referencia')}. Informa éxito en {link_ranking}."
+            mision_ia = f"Confirma recibo (Monto {datos_v.get('monto')}, Ref {datos_v.get('referencia')}). Éxito en {MARCADOR_LINK}."
         else:
-            mision_ia = f"Informa error en el pago: {veredicto.get('explicacion_detallada')}. Pide el soporte correcto para {link_ranking}."
+            mision_ia = f"Error en pago: {veredicto.get('explicacion_detallada')}. Pide soporte para {MARCADOR_LINK}."
 
-    # E. SLOT FILLING: PEDIR CATEGORÍA PARA UN RETO (AQUÍ CORREGIMOS EL FALLO)
+    # E. SLOT FILLING: CATEGORÍA
     elif status == "ask_category":
-        mision_ia = f"""
-        ORDEN TÉCNICA: El socio quiere retar pero NO especificó la categoría. 
-        Misión: Debes citar las categorías disponibles en el club según esta lista: {orden_tecnica}. 
-        Pídele a {nombre_usuario} que elija en cuál desea agendar el duelo. 
-        IMPORTANTE: No te distraigas felicitándolo por sus puntos, ve directo a la pregunta de la categoría.
-        """
+        mision_ia = f"Misión: El socio quiere retar. Cita categorías disponibles: {orden_tecnica}. Pide que elija una para agendar en {MARCADOR_LINK}."
 
     # F. SLOT FILLING: FECHAS Y HORAS
     elif status == "ask_date":
-        mision_ia = f"ORDEN: Falta el día del reto. Pide el día exacto para agendar en {link_ranking}. Puedes mencionar que Maria Paula (o el rival) ya está esperando."
+        mision_ia = f"Falta el día del reto. Pídelo para agendar en {MARCADOR_LINK}."
 
     elif status == "ask_time":
-        mision_ia = f"ORDEN: Falta la HORA del reto. Pídela con estilo ejecutivo para cerrar el agendamiento en {link_ranking}."
+        mision_ia = f"Falta la HORA. Pídela con estilo ejecutivo para cerrar en {MARCADOR_LINK}."
 
-    # G. COMANDOS ADMINISTRATIVOS (CONFIGURACIÓN Y AUTORIZACIÓN)
+    # G. COMANDOS ADMINISTRATIVOS
     elif status in ["config_success", "auth_success"]:
-        mision_ia = f"Traduce este éxito administrativo: {orden_tecnica}. Mantén el tono institucional y menciona {link_ranking}."
+        mision_ia = f"Traduce éxito administrativo: {orden_tecnica}. Menciona el Muro de la Fama en {MARCADOR_LINK}."
 
-    # H. FLUJO DE RETOS (HANDSHAKES)
+    # H. FLUJO DE RETOS
     elif status in ["challenge_scheduled", "challenge_confirmed", "challenge_proposed"]:
-        mision_ia = f"Traduce esta orden de duelo: {orden_tecnica}. Usa lenguaje épico. Cita el Muro de la Riqueza en {link_ranking}."
+        mision_ia = f"Traduce orden de duelo: {orden_tecnica}. Lenguaje épico. Cita {MARCADOR_LINK}."
 
-    # I. CONSULTA O CHAT GENERAL (USO DE CONCIENCIA)
+    # I. CONSULTA O CHAT GENERAL
     else:
         mision_ia = f"""
         ORDEN TÉCNICA: {orden_tecnica}. 
-        El socio puede estar preguntando sobre su estatus personal. Responde de forma humana usando los datos de su expediente: {resumen_perfil_txt}. 
-        Ignora errores de ortografía del usuario. Termina con el link {link_ranking}.
+        Responde usando expediente: {resumen_perfil_txt}. Termina con el link {MARCADOR_LINK} al Muro de la Fama.
         """
 
     try:
@@ -113,13 +107,22 @@ def redactar(resultado_accion: dict, usuario_contexto: dict):
                 {"role": "system", "content": contexto_agente},
                 {"role": "user", "content": mision_ia}
             ],
-            temperature=0.3 # Mayor consistencia, menor creatividad.
+            temperature=0.3
         )
         
-        respuesta_final = response.choices[0].message.content
-        print(f"\033[37m[VOZ/ALEJANDRO] -> Comunicación VIP con jerarquía de misión generada.\033[0m")
+        texto_ia = response.choices[0].message.content
+        
+        # 🛡️ INYECCIÓN DINÁMICA DEL SISTEMA (Aquí es donde el código manda)
+        # Construimos el link real basado en el Club del usuario
+        link_real_club = f"https://pasto-ai-os.onrender.com/club/{club_id}"
+        
+        # Reemplazamos el marcador por la URL verdadera
+        respuesta_final = texto_ia.replace(MARCADOR_LINK, link_real_club)
+        
+        print(f"\033[32m[VOZ/ALEJANDRO] -> Link inyectado con éxito para Club {club_id}\033[0m")
         return respuesta_final
 
     except Exception as e:
         print(f"❌ Error crítico en Voz: {e}")
-        return f"Estimado {nombre_usuario}, su solicitud ha sido procesada con éxito. Le invito a visualizar los detalles en el Muro de la Riqueza: {link_ranking}. \n\nInnovación deportiva por Pasto.AI"
+        link_fallback = f"https://pasto-ai-os.onrender.com/club/{club_id}"
+        return f"Estimado {nombre_usuario}, su solicitud ha sido procesada. Verifique en el Muro de la Fama: {link_fallback}. \n\nInnovación deportiva por Pasto.AI"

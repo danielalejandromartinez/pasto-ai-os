@@ -7,187 +7,235 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;500;800&family=Rajdhani:wght@500;700&family=Orbitron:wght@400;900&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@200;400;900&family=Rajdhani:wght@500;700&family=Orbitron:wght@400;900&display=swap');
 
-        body { 
-            font-family: 'Inter', sans-serif; 
-            background-color: #050505; 
-            color: white;
-            background-image: radial-gradient(circle at 50% 0%, #1a1a1a 0%, #050505 70%);
-        }
-
+        /* 🎨 VARIABLES DEL FUTURO: Preparado para el Dashboard No-Code */
         :root {
             --brand-color: {{ sponsor.color if sponsor.activo else '#00f2ff' }};
             --gold-color: #ffcc00;
-            --silver-color: #e0e0e0;
+            --glass-bg: rgba(255, 255, 255, 0.03);
+            --glass-border: rgba(255, 255, 255, 0.1);
         }
 
-        .text-brand { color: var(--brand-color); text-shadow: 0 0 15px var(--brand-color); }
-        .text-gold { color: var(--gold-color); text-shadow: 0 0 10px var(--gold-color); }
-        .glass { background: rgba(10, 10, 10, 0.8); backdrop-filter: blur(15px); border-bottom: 1px solid rgba(255, 255, 255, 0.05); }
-        .sport-font { font-family: 'Rajdhani', sans-serif; text-transform: uppercase; }
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background-color: #000; 
+            color: white;
+            background-image: 
+                radial-gradient(circle at 50% -20%, var(--brand-color) 0%, transparent 40%),
+                radial-gradient(circle at 0% 100%, rgba(255, 140, 0, 0.05) 0%, transparent 30%);
+            background-attachment: fixed;
+        }
+
+        .sport-font { font-family: 'Rajdhani', sans-serif; text-transform: uppercase; letter-spacing: 2px; }
         .digital-font { font-family: 'Orbitron', sans-serif; }
-        
-        .leader-aura { box-shadow: 0 0 40px var(--brand-color); border: 2px solid var(--brand-color); }
-        .card-gradient { background: linear-gradient(to bottom, transparent 10%, rgba(0,0,0,0.95) 100%); }
-        .alive-photo { animation: breathe 8s infinite ease-in-out; }
-        @keyframes breathe { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.03); } }
 
-        /* Tarjetas de Reto */
-        .match-card { background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.1); transition: 0.3s; }
-        .match-confirmed { border-color: var(--brand-color); box-shadow: 0 0 20px rgba(0, 242, 255, 0.1); cursor: pointer; }
-        .match-proposed { opacity: 0.6; border-style: dashed; }
+        /* --- HEADER ESTILO MIDJOURNEY --- */
+        .cyber-header-title {
+            font-size: clamp(3rem, 10vw, 6rem);
+            font-weight: 900;
+            background: linear-gradient(to bottom, #fff 40%, rgba(255,255,255,0.1) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 30px rgba(255,255,255,0.1);
+        }
 
-        .monthly-badge { background: linear-gradient(135deg, #000 0%, #222 100%); border: 1px solid var(--gold-color); box-shadow: 0 0 15px rgba(255, 204, 0, 0.2); }
+        /* --- TARJETAS DEL RADAR (RECOSTRUCCIÓN TOTAL) --- */
+        .match-card { 
+            background: rgba(255, 255, 255, 0.02); 
+            border: 1px solid var(--glass-border); 
+            backdrop-filter: blur(20px);
+            transition: 0.5s cubic-bezier(0.2, 1, 0.3, 1);
+            position: relative;
+        }
 
-        /* --- NUEVO: ESTILOS DE PESTAÑAS NEÓN --- */
-        .cat-tab {
-            padding: 10px 25px;
-            border-bottom: 3px solid transparent;
+        .match-confirmed { 
+            border-color: var(--brand-color); 
+            box-shadow: 0 0 30px rgba(0, 242, 255, 0.1);
+            cursor: pointer;
+        }
+
+        .match-proposed { 
+            border-color: rgba(255, 204, 0, 0.2); 
+            border-style: dashed;
+            opacity: 0.7;
+        }
+
+        /* Luces de estado */
+        .status-light {
+            font-size: 8px;
+            padding: 4px 12px;
+            border-radius: 100px;
             font-family: 'Orbitron';
-            font-size: 10px;
             letter-spacing: 2px;
-            color: #444;
-            transition: 0.4s;
-            text-transform: uppercase;
+            font-weight: 900;
         }
-        .cat-tab.active {
-            color: var(--brand-color);
-            border-bottom-color: var(--brand-color);
-            text-shadow: 0 0 10px var(--brand-color);
+        .light-confirmed { background: rgba(0, 242, 255, 0.1); color: var(--brand-color); border: 1px solid var(--brand-color); animation: pulse-blue 2s infinite; }
+        .light-pending { background: rgba(255, 204, 0, 0.1); color: var(--gold-color); border: 1px solid var(--gold-color); animation: pulse-gold 2s infinite; }
+
+        @keyframes pulse-blue { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; box-shadow: 0 0 15px var(--brand-color); } }
+        @keyframes pulse-gold { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; box-shadow: 0 0 15px var(--gold-color); } }
+
+        /* --- JUGADORES MIDJOURNEY --- */
+        .player-card-container {
+            background: var(--glass-bg);
+            backdrop-filter: blur(25px);
+            border: 1px solid var(--glass-border);
+            transition: 0.6s ease;
         }
+        .player-card-container:hover { border-color: var(--brand-color); transform: translateY(-10px); }
+
+        .alive-photo { filter: grayscale(100%); transition: 1s ease; }
+        .player-card-container:hover .alive-photo { filter: grayscale(0%); transform: scale(1.05); }
+
+        .cat-tab {
+            padding: 10px 25px; font-family: 'Orbitron'; font-size: 10px; color: #444; border-radius: 100px; border: 1px solid transparent; transition: 0.4s;
+        }
+        .cat-tab.active { color: var(--brand-color); background: rgba(0, 242, 255, 0.05); border-color: rgba(0, 242, 255, 0.2); text-shadow: 0 0 15px var(--brand-color); }
     </style>
 </head>
-<body class="min-h-screen pb-20">
+<body class="min-h-screen pb-32">
 
     <!-- NAV -->
-    <nav class="fixed top-0 w-full z-50 glass h-24 flex items-center px-6">
-        <div class="max-w-7xl mx-auto w-full flex items-center justify-between">
-            <div class="flex items-center gap-4">
-                <div class="h-14 w-24 rounded border border-white/10 overflow-hidden bg-black flex items-center justify-center shadow-2xl">
-                    <video autoplay loop muted playsinline class="w-full h-full object-cover">
-                        <source src="/static/logo_pasto.mp4" type="video/mp4">
-                    </video>
-                </div>
-                <div class="flex items-center gap-3 border-l border-white/10 pl-4">
-                    <img src="/static/logo_pasto.jpg" class="h-12 w-auto object-contain" alt="Logo Club">
-                    <div class="flex flex-col">
-                        <span class="font-bold text-xl sport-font tracking-tighter">THE ARENA</span>
-                        <span class="text-[10px] text-brand tracking-widest font-bold uppercase">Temporada 2026-I</span>
-                    </div>
-                </div>
+    <nav class="fixed top-0 w-full z-50 px-8 h-24 flex items-center justify-between backdrop-blur-xl border-b border-white/5">
+        <div class="flex items-center gap-6">
+            <div class="h-12 w-20 rounded overflow-hidden bg-black border border-white/10 shadow-2xl">
+                <video autoplay loop muted playsinline class="w-full h-full object-cover">
+                    <source src="/static/logo_pasto.mp4" type="video/mp4">
+                </video>
+            </div>
+            <div class="flex flex-col">
+                <span class="font-bold text-xl sport-font text-white/80">THE ARENA</span>
+                <span class="text-[9px] text-brand digital-font tracking-[0.4em] uppercase">Global Intelligence OS</span>
             </div>
         </div>
+        <div class="hidden lg:block text-[9px] digital-font text-white/20 tracking-widest">STATUS: <span class="text-green-500">OPERATIONAL</span></div>
     </nav>
 
     <!-- HEADER -->
-    <div class="pt-44 pb-4 text-center">
-        <h1 class="text-6xl md:text-8xl font-black sport-font text-white">WALL OF <span class="text-brand">WEALTH</span></h1>
-        <p class="text-slate-500 text-xs tracking-[0.5em] uppercase font-bold mb-8">Métrica de Calidad: 24 Mejores Resultados</p>
+    <div class="pt-48 pb-12 text-center">
+        <h1 class="cyber-header-title sport-font">MURO DE LA FAMA</h1>
+        <div class="flex items-center justify-center gap-4 mt-[-15px] mb-16">
+            <div class="h-[1px] w-16 bg-brand/30"></div>
+            <p class="text-slate-500 text-[10px] tracking-[0.8em] uppercase font-light">Ecosistema de Prestigio Pasto.AI</p>
+            <div class="h-[1px] w-16 bg-brand/30"></div>
+        </div>
         
-        <!-- ✅ BARRA DE CATEGORÍAS DINÁMICA -->
-        <div class="flex justify-center gap-4 border-b border-white/5 max-w-2xl mx-auto">
-            <button class="cat-tab active" onclick="filterCategory('TODOS', this)">TODOS</button>
+        <!-- CATEGORÍAS -->
+        <div class="flex flex-wrap justify-center gap-3 max-w-2xl mx-auto">
+            <button class="cat-tab active" onclick="filterCategory('TODOS', this)">ALL_UNITS</button>
             {% for cat in categorias %}
                 <button class="cat-tab" onclick="filterCategory('{{ cat.name }}', this)">{{ cat.name }}</button>
             {% endfor %}
         </div>
     </div>
 
-    <div class="max-w-7xl mx-auto px-4 mt-12">
+    <div class="max-w-[1600px] mx-auto px-8">
 
-        <!-- 🎾 SECCIÓN DE RETOS -->
+        <!-- 🎾 LIVE COMBAT RADAR (NUEVA GENERACIÓN) -->
         {% if retos %}
-        <div class="mb-20">
-            <h2 class="text-sm font-bold text-gray-400 mb-6 flex items-center gap-3 sport-font tracking-[0.3em]">
-                <span class="flex h-2 w-2 rounded-full bg-brand animate-pulse"></span>
-                DUELOS EN LA ARENA
-            </h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div class="mb-24">
+            <div class="flex items-center gap-4 mb-10 opacity-40">
+                <div class="h-[1px] flex-1 bg-white/10"></div>
+                <h2 class="text-[10px] digital-font tracking-[0.5em]">LIVE_DUELS_RADAR</h2>
+                <div class="h-[1px] flex-1 bg-white/10"></div>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                 {% for reto in retos %}
-                <div class="match-card rounded-2xl p-8 flex justify-between items-center relative overflow-hidden {{ 'match-confirmed' if reto.status == 'scheduled' else 'match-proposed' }}"
+                <div class="match-card rounded-2xl p-10 flex flex-col items-center group {{ 'match-confirmed' if reto.status == 'scheduled' else 'match-proposed' }}"
                      {% if reto.status == 'scheduled' %} onclick="window.location.href='/tablero?matchId={{ reto.id }}&p1={{ reto.player_1.name }}&p2={{ reto.player_2.name }}'" {% endif %}>
                     
-                    <div class="text-center w-1/3 z-10">
-                        <div class="text-2xl font-bold text-white sport-font">{{ reto.player_1.name.split(' ')[0] }}</div>
-                        <div class="text-[9px] text-gray-500 tracking-[0.2em] mt-1">RETADOR</div>
+                    <!-- ESTADO HUD -->
+                    <div class="mb-6">
+                        {% if reto.status == 'scheduled' %}
+                            <span class="status-light light-confirmed">COMBATE_CONFIRMADO</span>
+                        {% else %}
+                            <span class="status-light light-pending">ESPERANDO_RESPUESTA</span>
+                        {% endif %}
                     </div>
 
-                    <div class="flex flex-col items-center w-1/3 z-10">
-                        <span class="text-4xl font-black text-white/5 sport-font italic leading-none">VS</span>
-                        {% if reto.status == 'scheduled' %}
-                            <span class="text-[9px] text-brand mt-2 font-black bg-brand/10 px-4 py-1.5 rounded-full border border-brand/30 animate-pulse tracking-widest">CONFIRMADO</span>
-                        {% else %}
-                            <span class="text-[9px] text-gray-500 mt-2 font-bold border border-white/10 px-4 py-1.5 rounded-full italic uppercase tracking-widest">PENDIENTE</span>
-                        {% endif %}
+                    <div class="flex justify-between items-center w-full">
+                        <div class="text-center w-5/12">
+                            <div class="text-2xl font-bold text-white sport-font tracking-tighter">{{ reto.player_1.name.split(' ')[0] }}</div>
+                            <div class="text-[8px] text-white/30 digital-font mt-2">UNIT_ALFA</div>
+                        </div>
 
-                        <div class="mt-4 flex flex-col items-center opacity-40">
-                            <span class="text-[10px] digital-font font-medium tracking-[0.4em] text-white">
-                                {{ reto.scheduled_time.strftime('%d . %m') if reto.scheduled_time else '-- . --' }}
-                            </span>
-                            <span class="text-[12px] digital-font font-black tracking-[0.2em] text-white mt-1">
-                                {{ reto.scheduled_time.strftime('%H:%M') if reto.scheduled_time else '--:--' }}
-                            </span>
+                        <div class="w-2/12 flex justify-center">
+                            <span class="text-3xl font-black text-white/5 sport-font italic group-hover:text-brand/20 transition-all">VS</span>
+                        </div>
+
+                        <div class="text-center w-5/12">
+                            <div class="text-2xl font-bold text-white sport-font tracking-tighter">{{ reto.player_2.name.split(' ')[0] }}</div>
+                            <div class="text-[8px] text-white/30 digital-font mt-2">UNIT_BETA</div>
                         </div>
                     </div>
 
-                    <div class="text-center w-1/3 z-10">
-                        <div class="text-2xl font-bold text-white sport-font">{{ reto.player_2.name.split(' ')[0] }}</div>
-                        <div class="text-[9px] text-gray-500 tracking-[0.2em] mt-1">RIVAL</div>
+                    <!-- FECHA Y HORA (CON FECHA REAL) -->
+                    <div class="mt-8 pt-6 border-t border-white/5 w-full flex justify-center gap-10">
+                        <div class="flex flex-col items-center">
+                            <span class="text-[8px] text-white/20 digital-font mb-1">DATA_LNK</span>
+                            <span class="text-xs digital-font text-white/60 tracking-widest">
+                                {{ reto.scheduled_time.strftime('%a %d • %b') if reto.scheduled_time else 'TBD' }}
+                            </span>
+                        </div>
+                        <div class="flex flex-col items-center">
+                            <span class="text-[8px] text-white/20 digital-font mb-1">SYNC_TIME</span>
+                            <span class="text-sm digital-font text-brand font-black">
+                                {{ reto.scheduled_time.strftime('%I:%M %p') if reto.scheduled_time else 'TBD' }}
+                            </span>
+                        </div>
                     </div>
+                    
+                    <!-- Brillo de fondo sutil -->
+                    <div class="absolute inset-0 bg-brand/5 opacity-0 group-hover:opacity-10 transition-opacity"></div>
                 </div>
                 {% endfor %}
             </div>
         </div>
         {% endif %}
 
-        <!-- ✅ GRID DE JUGADORES FILTRABLE -->
-        <div id="player-grid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 md:gap-10">
+        <!-- ✅ GRID DE GUERREROS -->
+        <div id="player-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
             {% for jugador in jugadores %}
-            <!-- Añadimos data-categorias con los nombres de sus categorías -->
-            <div class="player-card-container relative h-[500px] rounded-3xl overflow-hidden group bg-zinc-900 border border-white/5 transition-all duration-500" 
+            <div class="player-card-container relative h-[520px] rounded-3xl overflow-hidden group cursor-pointer" 
                  data-categorias="{{ jugador.categorias | join(' ') }}">
                 
-                <div class="absolute top-4 right-4 z-20 monthly-badge px-3 py-1 rounded-full flex flex-col items-center">
-                    <span class="text-[7px] text-gray-400 font-bold uppercase leading-none">Este Mes</span>
-                    <span class="text-gold font-black digital-font text-sm">{{ jugador.monthly_points if jugador.monthly_points else 0 }}</span>
+                <div class="absolute top-6 right-6 z-20 bg-black/50 backdrop-blur-md px-3 py-1 rounded border border-white/10 flex flex-col items-end">
+                    <span class="text-[7px] text-white/40 font-bold uppercase">Monthly</span>
+                    <span class="text-brand font-black digital-font text-xs">{{ jugador.monthly_points if jugador.monthly_points else 0 }}</span>
                 </div>
 
                 {% if jugador.avatar_url %}
-                    <img src="{{ jugador.avatar_url }}?v={{ range(1, 999) | random }}" class="absolute inset-0 w-full h-full object-cover alive-photo grayscale group-hover:grayscale-0 transition-all duration-1000">
+                    <img src="{{ jugador.avatar_url }}?v={{ range(1, 999) | random }}" 
+                         class="absolute inset-0 w-full h-full object-cover alive-photo">
                 {% else %}
-                    <div class="absolute inset-0 bg-zinc-800 flex items-center justify-center">
-                        <span class="text-8xl font-black text-white/5 sport-font">{{ jugador.name[:2].upper() }}</span>
+                    <div class="absolute inset-0 bg-zinc-900 flex items-center justify-center">
+                        <span class="text-8xl font-black text-white/5 sport-font">{{ jugador.name[:1].upper() }}</span>
                     </div>
                 {% endif %}
                 
-                <div class="absolute inset-0 card-gradient flex flex-col justify-end p-6 z-10">
-                    <div class="flex justify-between items-start mb-2">
-                        <div class="flex flex-col gap-1">
-                            <span class="text-4xl font-black text-white/20 sport-font index-number">{{ loop.index }}</span>
-                            <div class="flex gap-1">
+                <div class="absolute inset-0 card-hud flex flex-col justify-end p-8 z-10">
+                    <div class="flex justify-between items-end mb-4">
+                        <div class="flex flex-col">
+                            <span class="text-5xl font-black text-white/10 sport-font index-number italic">#{{ loop.index }}</span>
+                            <div class="flex gap-1 mt-2">
                                 {% for i in range(jugador.stars) %}
-                                    <i class="fa-solid fa-star text-gold text-[10px] drop-shadow-[0_0_5px_rgba(255,204,0,0.8)]"></i>
+                                    <i class="fa-solid fa-star text-brand text-[7px] drop-shadow-[0_0_8px_var(--brand-color)]"></i>
                                 {% endfor %}
                             </div>
                         </div>
                         <div class="text-right">
-                            <span class="text-[8px] text-gray-400 font-bold uppercase">Puntos Temporada</span>
+                            <span class="text-[7px] text-white/40 digital-font uppercase">SEASON_XP</span>
                             <span class="block text-4xl font-black text-brand digital-font leading-none">{{ jugador.season_points }}</span>
                         </div>
                     </div>
 
-                    <div class="pt-4 border-t border-white/10">
-                        <h3 class="text-xl font-bold text-white sport-font truncate mb-1">{{ jugador.name }}</h3>
-                        <div class="flex justify-between items-center bg-white/5 px-3 py-2 rounded-xl border border-white/5 mb-2">
-                            <span class="text-[8px] text-gray-500 font-bold uppercase">Legado Eterno</span>
-                            <span class="text-xs font-bold text-silver-color digital-font">{{ jugador.eternal_points | int }} XP</span>
-                        </div>
-                        <!-- Etiquetas de categorías del jugador -->
-                        <div class="flex gap-1 overflow-hidden opacity-30">
-                            {% for cname in jugador.categorias %}
-                                <span class="text-[6px] border border-white/20 px-1 rounded uppercase">{{ cname }}</span>
-                            {% endfor %}
+                    <div class="pt-4 border-t border-white/5">
+                        <h3 class="text-2xl font-bold text-white sport-font leading-tight mb-2">{{ jugador.name }}</h3>
+                        <div class="flex justify-between items-center bg-white/5 px-3 py-2 rounded-lg border border-white/5">
+                            <span class="text-[7px] text-white/30 digital-font uppercase">Legend</span>
+                            <span class="text-[10px] font-bold text-white digital-font">{{ jugador.eternal_points | int }} XP</span>
                         </div>
                     </div>
                 </div>
@@ -196,13 +244,15 @@
         </div>
     </div>
 
-    <!-- SPONSOR FLOTANTE -->
+    <!-- SPONSOR CAPSULE -->
     {% if sponsor.activo %}
-    <a href="https://wa.me/{{ sponsor.whatsapp }}?text={{ sponsor.mensaje }}" target="_blank" class="fixed bottom-8 right-8 flex items-center gap-4 bg-white text-black px-6 py-4 rounded-2xl shadow-2xl border-b-4 border-orange-500 hover:scale-105 transition-all z-50">
-        <img src="{{ sponsor.logo }}" class="h-8 w-auto object-contain" alt="Sponsor">
-        <div class="flex flex-col items-start border-l border-gray-200 pl-4">
-            <span class="text-[9px] uppercase font-black text-gray-400">Próximo Nivel</span>
-            <span class="text-md font-black text-orange-500">INSCRIBIRME <i class="fa-solid fa-bolt ml-1"></i></span>
+    <a href="https://wa.me/{{ sponsor.whatsapp }}?text={{ sponsor.mensaje }}" target="_blank" class="fixed bottom-10 right-10 flex items-center gap-4 bg-white/5 backdrop-blur-2xl text-white px-6 py-4 rounded-full border border-white/10 hover:border-brand/40 hover:scale-105 transition-all z-50">
+        <div class="h-8 w-8 rounded-full overflow-hidden bg-white/10 p-1 flex items-center justify-center border border-white/10">
+            <img src="{{ sponsor.logo }}" class="w-full h-auto object-contain" alt="Sponsor">
+        </div>
+        <div class="flex flex-col items-start border-l border-white/10 pl-4">
+            <span class="text-[7px] digital-font text-white/40 uppercase tracking-widest">Connect_Agent</span>
+            <span class="text-[10px] font-black text-brand sport-font">{{ sponsor.cta }} <i class="fa-solid fa-arrow-right ml-1"></i></span>
         </div>
     </a>
     {% endif %}
@@ -212,18 +262,14 @@
         const socket = new WebSocket(`${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws/${clubId}`);
         socket.onmessage = function(e) { 
             if (e.data === "update") { 
-                document.body.style.opacity = "0.3"; 
+                document.body.style.opacity = "0.4"; 
                 setTimeout(() => location.reload(), 200); 
             } 
         };
 
-        // ✅ FUNCIÓN DE FILTRADO EN TIEMPO REAL
         function filterCategory(catName, btn) {
-            // 1. Actualizar estado visual de botones
             document.querySelectorAll('.cat-tab').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
-
-            // 2. Filtrar tarjetas
             const cards = document.querySelectorAll('.player-card-container');
             let visibleIndex = 1;
 
@@ -231,8 +277,7 @@
                 const cardCats = card.getAttribute('data-categorias');
                 if (catName === 'TODOS' || cardCats.includes(catName)) {
                     card.style.display = 'block';
-                    // Opcional: Actualizar el número de posición visual para que sea coherente
-                    card.querySelector('.index-number').innerText = visibleIndex++;
+                    card.querySelector('.index-number').innerText = `#${visibleIndex++}`;
                 } else {
                     card.style.display = 'none';
                 }
