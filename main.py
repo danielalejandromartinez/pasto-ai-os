@@ -62,66 +62,70 @@ async def root():
 # ============================================================
 @app.get("/club/{club_id}")
 async def ver_club(request: Request, club_id: int, db: Session = Depends(get_db)):
-    club = db.query(Club).filter(Club.id == club_id).first()
-    if not club: return "Club no encontrado"
-    
-    # --- 🎨 MOTOR DE IDENTIDAD DINÁMICA ---
-    settings = club.settings if club.settings else {}
-    identidad_visual = {
-        "activo": True,
-        "nombre": club.name,
-        "logo": settings.get("logo_url", "/static/logo_pasto.jpg"),
-        "whatsapp": club.admin_phone,
-        "mensaje": f"Hola, quiero información del club {club.name}.",
-        "color": settings.get("primary_color", "#00f2ff"),
-        "cta": "Inscribirme"
-    }
+    try:
+        club = db.query(Club).filter(Club.id == club_id).first()
+        if not club: return HTMLResponse(content="Club no encontrado", status_code=404)
+        
+        # --- 🎨 MOTOR DE IDENTIDAD DINÁMICA ---
+        settings = club.settings if club.settings else {}
+        identidad_visual = {
+            "activo": True,
+            "nombre": club.name,
+            "logo": settings.get("logo_url", "/static/logo_pasto.jpg"),
+            "whatsapp": club.admin_phone,
+            "mensaje": f"Hola, quiero información del club {club.name}.",
+            "color": settings.get("primary_color", "#00f2ff"),
+            "cta": "Inscribirme"
+        }
 
-    cats_db = db.query(Category).filter_by(club_id=club_id).all()
-    cats_procesadas = [{"id": c.id, "name": c.name} for c in cats_db] if cats_db else [{"id": 0, "name": "General"}]
+        cats_db = db.query(Category).filter_by(club_id=club_id).all()
+        cats_procesadas = [{"id": c.id, "name": c.name} for c in cats_db] if cats_db else [{"id": 0, "name": "General"}]
 
-    jugadores_raw = db.query(Player).filter(Player.club_id == club_id).all()
-    ahora = datetime.now()
-    primer_dia_mes = ahora.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-    
-    jugadores_procesados = []
+        jugadores_raw = db.query(Player).filter(Player.club_id == club_id).all()
+        ahora = datetime.now()
+        primer_dia_mes = ahora.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        
+        jugadores_procesados = []
 
-    for p in jugadores_raw:
-        puntos_mes = db.query(func.sum(PointTransaction.points_earned)).filter(
-            and_(PointTransaction.player_id == p.id, PointTransaction.timestamp >= primer_dia_mes)
-        ).scalar() or 0
+        for p in jugadores_raw:
+            puntos_mes = db.query(func.sum(PointTransaction.points_earned)).filter(
+                and_(PointTransaction.player_id == p.id, PointTransaction.timestamp >= primer_dia_mes)
+            ).scalar() or 0
 
-        season = db.query(Season).filter(and_(Season.club_id == club_id, Season.is_active == True)).first()
-        puntos_temporada = 0
-        if season:
-            transacciones = db.query(PointTransaction).filter(
-                and_(PointTransaction.player_id == p.id, PointTransaction.timestamp >= season.start_date)
-            ).order_by(PointTransaction.points_earned.desc()).limit(24).all()
-            puntos_temporada = sum(t.points_earned for t in transacciones)
+            season = db.query(Season).filter(and_(Season.club_id == club_id, Season.is_active == True)).first()
+            puntos_temporada = 0
+            if season:
+                transacciones = db.query(PointTransaction).filter(
+                    and_(PointTransaction.player_id == p.id, PointTransaction.timestamp >= season.start_date)
+                ).order_by(PointTransaction.points_earned.desc()).limit(24).all()
+                puntos_temporada = sum(t.points_earned for t in transacciones)
 
-        mis_categorias = [c.name for c in p.categories]
-        if not mis_categorias: mis_categorias = ["General"]
+            mis_categorias = [c.name for c in p.categories]
+            if not mis_categorias: mis_categorias = ["General"]
 
-        avatar = p.avatar_url if p.avatar_url else None
+            avatar = p.avatar_url if p.avatar_url else None
 
-        jugadores_procesados.append({
-            "id": p.id,
-            "name": p.name,
-            "avatar_url": avatar,
-            "eternal_points": int(p.eternal_points),
-            "season_points": int(puntos_temporada),
-            "monthly_points": int(puntos_mes),
-            "stars": p.achievements.get("stars", 0) if p.achievements else 0,
-            "categorias": mis_categorias
+            jugadores_procesados.append({
+                "id": p.id,
+                "name": p.name,
+                "avatar_url": avatar,
+                "eternal_points": int(p.eternal_points),
+                "season_points": int(puntos_temporada),
+                "monthly_points": int(puntos_mes),
+                "stars": p.achievements.get("stars", 0) if p.achievements else 0,
+                "categorias": mis_categorias
+            })
+
+        retos_db = db.query(Match).filter(and_(Match.is_finished == False, or_(Match.status == 'proposed', Match.status == 'scheduled'))).all()
+        jugadores_procesados.sort(key=lambda x: x["season_points"], reverse=True)
+
+        return templates.TemplateResponse("ranking.html", {
+            "request": request, "jugadores": jugadores_procesados, "retos": retos_db, 
+            "club_id": club_id, "sponsor": identidad_visual, "categorias": cats_procesadas
         })
-
-    retos_db = db.query(Match).filter(and_(Match.is_finished == False, or_(Match.status == 'proposed', Match.status == 'scheduled'))).all()
-    jugadores_procesados.sort(key=lambda x: x["season_points"], reverse=True)
-
-    return templates.TemplateResponse("ranking.html", {
-        "request": request, "jugadores": jugadores_procesados, "retos": retos_db, 
-        "club_id": club_id, "sponsor": identidad_visual, "categorias": cats_procesadas
-    })
+    except Exception as e:
+        print(f"❌ Error visualizando web: {e}")
+        return HTMLResponse(content="Error en Muro de la Fama", status_code=500)
 
 # ============================================================
 # 📡 API: FINALIZAR PARTIDO (MOTOR DE INCENTIVOS 10/3)
@@ -134,12 +138,14 @@ async def finalizar_partido(request: Request, db: Session = Depends(get_db)):
         print(f"\n{C_OBS}[LOOP: PASO 1 - OBSERVANDO 👁️] -> Transmisión de resultado para Match ID: {match_id}{C_END}")
         match = db.query(Match).filter(Match.id == match_id).first()
         if not match: return {"status": "error", "mensaje": "Duelo no localizado."}
+
         p1, p2 = match.player_1, match.player_2
         winner_norm = _norm(winner_name)
         if _norm(p1.name) in winner_norm or winner_norm in _norm(p1.name):
             ganador, participante = p1, p2
         else:
             ganador, participante = p2, p1
+
         print(f"{C_EXE}[LOOP: PASO 5 - EJECUTANDO ⚡] -> Aplicando lógica 10/3: {ganador.name} (W) vs {participante.name} (P){C_END}")
         ganador.eternal_points += 10.0; ganador.wins += 1
         db.add(PointTransaction(player_id=ganador.id, match_id=match_id, points_earned=10.0, match_type="challenge", timestamp=datetime.now()))
@@ -147,7 +153,7 @@ async def finalizar_partido(request: Request, db: Session = Depends(get_db)):
         db.add(PointTransaction(player_id=participante.id, match_id=match_id, points_earned=3.0, match_type="challenge", timestamp=datetime.now()))
         match.is_finished = True; match.status = "finished"; match.score = data.get("res"); match.winner_id = ganador.id
         db.commit()
-        print(f"{C_VER}[LOOP: PASO 6 - VERIFICANDO ✅] -> Muro de la Fama actualizado para ambos.{C_END}")
+        print(f"{C_VER}[LOOP: PASO 6 - VERIFICANDO ✅] -> Muro de la Fama actualizado.{C_END}")
         await manager.broadcast("update", 1)
         return {"status": "success"}
     except Exception as e:
@@ -163,20 +169,23 @@ async def ver_tablero(request: Request):
 # ============================================================
 @app.get("/nuclear-reset")
 def nuclear_reset():
-    Base.metadata.drop_all(bind=engine); Base.metadata.create_all(bind=engine)
-    db = SessionLocal()
-    demo_players = [
-        ("Daniel (CEO)", "573152405542"), ("Paula", "573186597045"), ("Maria Paula", "573133969908"),
-        ("Fernando", "573001112233"), ("Andres", "573002223344"), ("Carlos", "573003334455"),
-        ("Diana", "573004445566"), ("Elena", "573005556677"), ("Gabriel", "573006667788"), ("Hugo", "573007778899")
-    ]
-    db.add(Club(id=1, name="Club Colombia", admin_phone="573152405542"))
-    db.add(Season(id=1, name="Temporada I - 2026", start_date=datetime(2026, 1, 1), end_date=datetime(2026, 5, 31), club_id=1))
-    for name, phone in demo_players:
-        db.add(WhiteList(phone_number=phone, full_name=name, club_id=1, is_active=True))
-    db.commit(); db.close()
-    print(f"{C_EXE}🚀 [SISTEMA] Reset nuclear completado con 10 identidades habilitadas.{C_END}")
-    return {"status": "success", "message": "Reset nuclear completado con 10 identidades habilitadas."}
+    try:
+        Base.metadata.drop_all(bind=engine); Base.metadata.create_all(bind=engine)
+        db = SessionLocal()
+        demo_players = [
+            ("Daniel (CEO)", "573152405542"), ("Paula", "573186597045"), ("Maria Paula", "573133969908"),
+            ("Fernando", "573001112233"), ("Andres", "573002223344"), ("Carlos", "573003334455"),
+            ("Diana", "573004445566"), ("Elena", "573005556677"), ("Gabriel", "573006667788"), ("Hugo", "573007778899")
+        ]
+        db.add(Club(id=1, name="Club Colombia", admin_phone="573152405542"))
+        db.add(Season(id=1, name="Temporada I - 2026", start_date=datetime(2026, 1, 1), end_date=datetime(2026, 5, 31), club_id=1))
+        for name, phone in demo_players:
+            db.add(WhiteList(phone_number=phone, full_name=name, club_id=1, is_active=True))
+        db.commit(); db.close()
+        print(f"{C_EXE}🚀 [SISTEMA] Reset nuclear completado con 10 identidades.{C_END}")
+        return {"status": "success", "message": "Reset nuclear completado con 10 identidades habilitadas."}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
 
 # ============================================================
 # 🧠 EL COCINERO: PROCESAMIENTO TOTAL DEL LOOP (8 PASOS)
@@ -189,29 +198,26 @@ async def procesar_mensaje_ia(telefono: str, texto: str, tipo: str, enviar_real:
         historial_chat = [{"role": m.role, "content": m.content} for m in reversed(mensajes_db)]
         
         print(f"{C_INT}[LOOP: PASO 2 - INTERPRETANDO 🧠]{C_END}")
-        
-        # --- 🆕 AJUSTE DE CÁMARA MÁGICA PARA EL SIMULADOR ---
         if tipo == 'image':
-            if enviar_real and media_id:
-                # Caso WhatsApp real: Descargamos desde Meta
-                media_service.descargar_foto_perfil(media_id, telefono)
-            else:
-                # Caso Simulador: Activamos el Avatar de respaldo profesional
-                media_service.activar_foto_demo(telefono)
-        # ----------------------------------------------------
+            if enviar_real and media_id: media_service.descargar_foto_perfil(media_id, telefono)
+            else: media_service.activar_foto_demo(telefono)
 
         usuario_contexto = user_classifier.clasificar_usuario(telefono)
-        
-        # --- 🆕 AGREGADO: Marcamos la intención como Demo si viene del simulador ---
         intencion = {"tipo": "enviar_comprobante"} if tipo == 'image' else intent_resolver.analizar_intencion(texto, usuario_contexto, historial_chat)
         intencion["es_demo"] = not enviar_real 
-        # -------------------------------------------------------------------------
 
         orquestador = Orchestrator(db, usuario_contexto)
         resultado = orquestador.procesar_intencion(intencion)
 
         respuesta = generar_respuesta_humana.redactar(resultado, usuario_contexto)
         
+        # 📢 LOG DE RESPUESTA AGÉNTICA (PASO 8)
+        print(f"\n{C_ADJ}——————————————————————————————————————————————————")
+        print(f"📢 [LOOP: PASO 8 - AJUSTAR COMPORTAMIENTO 🔄]")
+        print(f"   ALEJANDRO RESPONDE A {usuario_contexto.get('nombre')}:")
+        print(f"   \"{respuesta}\"")
+        print(f"——————————————————————————————————————————————————{C_END}")
+
         msg_bot = MessageHistory(phone_number=telefono, role="assistant", content=respuesta)
         db.add(msg_bot); db.commit()
 
@@ -225,13 +231,12 @@ async def procesar_mensaje_ia(telefono: str, texto: str, tipo: str, enviar_real:
         await manager.broadcast("update", 1)
         return {"respuesta": respuesta, "proactivo": proactivo}
     except Exception as e:
-        print(f"\033[1;31m❌ [ERROR CRÍTICO] En el Loop: {e}\033[0m")
-        return {"respuesta": "Sincronizando sistemas...", "proactivo": None}
-    finally:
-        db.close()
+        print(f"\033[1;31m❌ [ERROR CRÍTICO] Loop falló: {e}\033[0m")
+        return {"respuesta": "Sistema en mantenimiento de prestigio...", "proactivo": None}
+    finally: db.close()
 
 # ============================================================
-# 🤖 SIMULADOR PROFESIONAL PASTO.AI 2030 (v3.0 - MULTI-PERSONA)
+# 🤖 SIMULADOR PROFESIONAL PASTO.AI 2030 (v3.1 - AUTO-SCROLL)
 # ============================================================
 @app.get("/test-chat", response_class=HTMLResponse)
 async def chat_local():
@@ -241,30 +246,20 @@ async def chat_local():
         <title>Pasto.AI | Agentic Sandbox</title>
         <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Rajdhani:wght@300;500;700&display=swap" rel="stylesheet">
         <style>
-            :root { --neon: #00f2ff; --bg: #050505; --glass: rgba(255,255,255,0.02); }
-            body { 
-                background: var(--bg); color: white; font-family: 'Rajdhani', sans-serif; 
-                display: flex; flex-direction: column; align-items: center; justify-content: center; 
-                height: 100vh; margin: 0;
-                background-image: radial-gradient(circle at 50% 50%, #1a1a1a 0%, #050505 100%);
-            }
-            .terminal { 
-                width: 480px; height: 85vh; background: var(--glass); 
-                border: 1px solid rgba(0,242,255,0.2); border-radius: 32px; 
-                display: flex; flex-direction: column; backdrop-filter: blur(30px);
-                box-shadow: 0 0 80px rgba(0,0,0,1); overflow: hidden;
-            }
-            .header { padding: 25px; border-bottom: 1px solid rgba(255,255,255,0.05); text-align: center; background: rgba(0,0,0,0.3); }
+            :root { --neon: #00f2ff; --bg: #050505; }
+            body { background: var(--bg); color: white; font-family: 'Rajdhani', sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; background-image: radial-gradient(circle at 50% 50%, #1a1a1a 0%, #050505 100%); }
+            .terminal { width: 480px; height: 90vh; background: rgba(255,255,255,0.02); border: 1px solid rgba(0,242,255,0.2); border-radius: 32px; display: flex; flex-direction: column; backdrop-filter: blur(30px); box-shadow: 0 0 100px rgba(0,0,0,1); overflow: hidden; }
+            .header { padding: 20px; border-bottom: 1px solid rgba(255,255,255,0.05); text-align: center; }
             .header h1 { font-family: 'Orbitron'; font-size: 14px; letter-spacing: 6px; color: var(--neon); margin: 0; text-shadow: 0 0 15px var(--neon); }
-            .chat-box { flex: 1; overflow-y: auto; padding: 30px; display: flex; flex-direction: column; gap: 20px; scrollbar-width: none; }
-            .msg { max-width: 85%; padding: 16px 22px; border-radius: 20px; font-size: 14px; line-height: 1.6; border: 1px solid transparent; }
-            .user { align-self: flex-end; background: var(--neon); color: black; font-weight: 800; border-bottom-right-radius: 4px; box-shadow: 0 5px 15px rgba(0,242,255,0.2); }
-            .bot { align-self: flex-start; background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.1); border-bottom-left-radius: 4px; color: #ccc; }
-            .input-area { padding: 30px; border-top: 1px solid rgba(255,255,255,0.05); background: rgba(0,0,0,0.4); }
-            select, input { width: 100%; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); padding: 18px; color: white; border-radius: 15px; outline: none; font-family: 'Rajdhani'; margin-bottom: 20px; font-size: 16px; }
-            select { color: var(--neon); font-family: 'Orbitron'; font-size: 10px; font-weight: bold; letter-spacing: 2px; }
-            .btns { display: flex; gap: 15px; }
-            button { flex: 1; padding: 16px; border: none; border-radius: 15px; font-family: 'Orbitron'; font-size: 10px; cursor: pointer; transition: 0.4s; letter-spacing: 3px; font-weight: 900; }
+            .chat-box { flex: 1; overflow-y: auto; padding: 25px; display: flex; flex-direction: column; gap: 15px; scrollbar-width: thin; scrollbar-color: var(--neon) transparent; scroll-behavior: smooth; }
+            .msg { max-width: 85%; padding: 14px 20px; border-radius: 18px; font-size: 14px; line-height: 1.6; word-wrap: break-word; }
+            .user { align-self: flex-end; background: var(--neon); color: black; font-weight: 800; border-bottom-right-radius: 2px; }
+            .bot { align-self: flex-start; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-bottom-left-radius: 2px; color: #eee; }
+            .input-area { padding: 25px; border-top: 1px solid rgba(255,255,255,0.05); background: rgba(0,0,0,0.4); }
+            select, input { width: 100%; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); padding: 14px; color: white; border-radius: 12px; outline: none; font-family: 'Rajdhani'; margin-bottom: 12px; font-size: 16px; }
+            select { color: var(--neon); font-family: 'Orbitron'; font-size: 10px; font-weight: bold; letter-spacing: 2px; height: 50px; cursor: pointer; }
+            .btns { display: flex; gap: 12px; }
+            button { flex: 1; padding: 16px; border: none; border-radius: 12px; font-family: 'Orbitron'; font-size: 10px; cursor: pointer; transition: 0.3s; letter-spacing: 3px; font-weight: 900; }
             .btn-send { background: var(--neon); color: black; }
             .btn-photo { background: transparent; border: 1px solid #ffcc00; color: #ffcc00; }
             button:hover { transform: translateY(-4px); filter: brightness(1.2); }
@@ -274,13 +269,12 @@ async def chat_local():
         <div class="terminal">
             <div class="header">
                 <h1>SANDBOX_OS_2030</h1>
-                <div style="font-size: 8px; opacity: 0.3; margin-top: 8px; letter-spacing: 2px;">VIRTUAL_IDENTITY_CONTROL</div>
+                <div style="font-size: 8px; opacity: 0.3; margin-top: 8px;">VIRTUAL_WHATSAPP_SIMULATOR</div>
             </div>
             <div id="chat" class="chat-box">
-                <div class="msg bot">Vínculo establecido. Seleccione una identidad de la lista para simular el comando.</div>
+                <div class="msg bot">Vínculo establecido. Seleccione una identidad para transmitir su señal.</div>
             </div>
             <div class="input-area">
-                <span style="font-size: 8px; color: var(--neon); letter-spacing: 2px; margin-bottom: 8px; display: block;">SWITCH_USER:</span>
                 <select id="phone-select">
                     <option value="573152405542">👤 DANIEL (CEO) - 573152405542</option>
                     <option value="573186597045">👤 PAULA - 573186597045</option>
@@ -322,7 +316,7 @@ async def chat_local():
                         chat.appendChild(proDiv);
                     }
                     chat.scrollTop = chat.scrollHeight;
-                } catch(e) { console.error("Error de núcleo."); }
+                } catch(e) { console.error("Error núcleo."); }
             }
         </script>
     </body>
@@ -357,17 +351,12 @@ async def receive_meta_webhook(request: Request, background_tasks: BackgroundTas
                             texto = msg.get("text", {}).get("body", "")
                             tipo = msg.get("type")
                             existe = db.query(MessageHistory).filter_by(whatsapp_msg_id=wamid).first()
-                            if existe:
-                                print(f"{C_ADJ}⚠️ [DEDUPLICACIÓN] Mensaje {wamid} ya procesado.{C_END}")
-                                continue 
-                            print(f"{C_EXE}📝 [RECEPCIONISTA] Anotando mensaje nuevo: {wamid}{C_END}")
+                            if existe: continue 
                             nuevo_registro = MessageHistory(whatsapp_msg_id=wamid, phone_number=telefono, role="user", content=texto if tipo == 'text' else f"[{tipo.upper()}]")
                             db.add(nuevo_registro); db.commit() 
                             background_tasks.add_task(procesar_mensaje_ia, telefono, texto, tipo, True, msg.get("image", {}).get("id") if tipo == "image" else None)
         return PlainTextResponse(content="OK", status_code=200) 
-    except Exception as e:
-        print(f"❌ Error en Webhook: {e}")
-        return PlainTextResponse(content="OK", status_code=200)
+    except Exception as e: return PlainTextResponse(content="OK", status_code=200)
 
 @app.websocket("/ws/{club_id}")
 async def websocket_endpoint(websocket: WebSocket, club_id: int):

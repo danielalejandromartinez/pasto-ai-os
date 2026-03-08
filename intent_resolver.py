@@ -1,6 +1,6 @@
 import os
 import json
-from datetime import datetime, timedelta
+from datetime import datetime
 import pytz 
 from openai import OpenAI
 from dotenv import load_dotenv
@@ -10,91 +10,70 @@ client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 def analizar_intencion(texto_usuario: str, usuario_contexto: dict, historial_chat: list = []):
     """
-    Cerebro de Alejandro v17.0 - Edición "Analytical, Predictive & Universal Intelligence".
+    Cerebro de Alejandro v20.0 - Edición "Global Slang & Emoji Intelligence".
     Paso del Loop: [2. INTERPRETAR 🧠]
-    Misión: Clasificación industrial de intenciones incluyendo Emojis, Tiempos, Comandos CEO y Analítica Profunda.
+    Misión: Comprensión universal de jerga (Pasto, Madrid, Argentina) y simbología (Emojis).
     """
     
-    # 🎨 [LOG DE INICIO] - Estética NASA para el Video Beam de la Junta
+    # 🎨 [PASO 1 DEL LOOP: OBSERVAR 👁️]
     nombre_usuario = usuario_contexto.get('nombre', 'Desconocido')
     rol_usuario = usuario_contexto.get('rol', 'JUGADOR')
     
     print(f"\n\033[1;95m" + "="*85)
-    print(f"🔍 [OÍDO/INTENT] -> ESCANEANDO FRECUENCIA: {nombre_usuario} ({rol_usuario})")
+    print(f"🔍 [OÍDO/INTENT] -> ESCANEANDO FRECUENCIA UNIVERSAL: {nombre_usuario}")
     print(f"📩 SEÑAL RECIBIDA: '{texto_usuario}'")
     print(f"="*85 + "\033[0m")
     
-    # 1. CONTEXTO TEMPORAL DE ALTA PRECISIÓN (Bogotá, Colombia)
+    # Contexto temporal de alta precisión
     bogota_tz = pytz.timezone('America/Bogota')
     ahora = datetime.now(bogota_tz)
     fecha_humana = ahora.strftime("%A, %d de %B de %Y, Hora Actual: %H:%M")
     
-    # 2. CONSTITUCIÓN DE LA MEMORIA ACTIVA (Sincronización de Contexto para Autonomía)
-    historial_txt = "SISTEMA SIN MEMORIA PREVIA (Inicio de Ciclo)"
+    # [PASO 7 DEL LOOP: APRENDER 📚] - Carga de Memoria Activa
+    historial_txt = "SISTEMA SIN MEMORIA PREVIA"
     if historial_chat:
-        historial_txt = "REGISTROS DE MEMORIA RECIENTE (HISTORIAL DE CONVERSACIÓN):\n"
-        for m in historial_chat[-6:]:
+        historial_txt = "HISTORIAL DE CONVERSACIÓN (Contexto de Jerga y Emojis):\n"
+        for m in historial_chat[-8:]:
             rol = "Alejandro (SISTEMA)" if m['role'] == 'assistant' else f"{nombre_usuario} (SOCIO)"
             historial_txt += f"- {rol}: {m['content']}\n"
     
-    # 🧠 PROMPT MAESTRO V17.0 (Ingeniería de Instrucciones de Máxima Robustez y Poder Analítico)
+    # 🧠 PROMPT MAESTRO V20.0 (El Políglota Universal)
     prompt = f"""
-    Eres el componente de INTERPRETACIÓN de Pasto.AI OS. Tu misión es transformar CUALQUIER señal humana 
-    en datos técnicos deterministas para un sistema operativo agéntico autónomo de clase mundial.
-    RELOJ DE SISTEMA: {fecha_humana} (Colombia).
+    Eres el Módulo de INTERPRETACIÓN de Pasto.AI OS. Tu misión es descifrar la voluntad real del usuario 
+    sin importar su dialecto, jerga o uso de emojis.
+    RELOJ: {fecha_humana} (Colombia).
 
     ### CONTEXTO DE MEMORIA:
     {historial_txt}
 
-    ### TU MISIÓN TÉCNICA:
-    Analiza la "SEÑAL RECIBIDA" ignorando el ruido y extrayendo la voluntad real del usuario con precisión forense.
-
-    ### REGLAS DE INTELIGENCIA ANALÍTICA Y PREDICTIVA:
-    1. ANALÍTICA DE RANKING: Si el socio pregunta por su puesto, diferencia de puntos con otros, cuántos partidos le faltan para subir de posición, o qué probabilidades tiene de ganar la estrella de la temporada -> tipo: 'consultar_analitica'.
-       - Ejemplo: "¿Cuantos puntos me faltan para alcanzar a Daniel?", "¿Que probabilidad tengo de ser el #1?", "¿Kien me persigue?".
-       - Extrae el 'objetivo_analitico' (ej: gap con puesto 1) y el 'rival_referencia' si lo menciona.
-
-    ### REGLAS DE INTELIGENCIA SIMBÓLICA Y SOCIAL:
-    2. CORTESÍA Y GRATITUD: Si el usuario dice "gracias", "mil gracias", "perfecto", "excelente", "entendido", ❤️, 🙏 -> tipo: 'agradecimiento'.
-    3. EMOJIS DE ACEPTACIÓN: 👍, ✅, 🔥, 🆗, 👌, 🔝 -> tipo: 'aceptar_reto' (si hay un reto pendiente en el historial).
-    
-    ### REGLAS DE RESILIENCIA LINGÜÍSTICA (INNEGOCIABLES):
-    4. FLEXIBILIDAD DE VERBOS: "jugar con", "darle una paliza a", "desafiar", "echar un partido" -> 'crear_reto'.
-    5. INTELIGENCIA TEMPORAL: "pasado mañana", "este sábado". Genera 'fecha_iso' (YYYY-MM-DDTHH:MM:SS) si tienes día y hora.
-    6. CATEGORÍAS LITERALES: Prohibido usar sinónimos. Usa exactamente los nombres configurados (Pro, Intermedio, Novato).
-
-    ### COMANDOS DE RANGO Y GESTIÓN:
-    - 'unirse_categoria': Acción personal de perfil ("ponme en...", "quiero estar en...").
-    - 'configurar_categorias': Orden administrativa de estructura global (Solo ADMIN/CEO).
-    - 'autorizar_socio': Orden administrativa de acceso para terceros (Solo ADMIN/CEO).
-
-    ### LISTA DE INTENCIONES OFICIALES:
-    - 'crear_reto', 'aceptar_reto', 'rechazar_reto', 'reproponer_reto', 'configurar_categorias', 'unirse_categoria', 'autorizar_socio', 'agradecimiento', 'consultar_analitica', 'enviar_comprobante', 'chat_general'.
-
-    MENSAJE ACTUAL: "{texto_usuario}"
+    ### TU MISIÓN TÉCNICA (UNIVERSAL UNDERSTANDING):
+    1. JERGA GLOBAL: Entiende "De una", "Parce" (Colombia), "Mola", "Vale", "Hostia" (España), "Che", "Dale", "Copado" (Argentina), "Bacan", "Chévere" y cualquier variante regional.
+    2. INTELIGENCIA DE EMOJIS: 
+       - 👍, ✅, 🤝, 🔥, 👌, 🔝, 🆗, 🦾 = ACEPTAR_RETO (si hay un reto pendiente).
+       - ❌, 👎, 🚫, 🙅‍♂️ = RECHAZAR_RETO.
+       - 🎾, ⚔️, 🏟️ = CREAR_RETO.
+    3. SLOT FILLING: Si el mensaje es solo un emoji o una palabra de jerga, BUSCA EN LA MEMORIA qué se estaba hablando y completa los datos (rival, día, hora). NUNCA borres datos heredados.
 
     ### FORMATO DE SALIDA (JSON ÚNICAMENTE):
     {{
         "tipo": "NOMBRE_INTENCION",
         "datos": {{
-            "rival": "nombre extraído o heredado",
-            "dia": "día detectado o heredado",
+            "rival": "nombre heredado o nuevo",
+            "dia": "día heredado o nuevo",
             "hora": "hora detectada",
-            "categoria": "categoría literal detectada",
-            "objetivo_analitico": "ej: diferencia de puntos o probabilidad de ganar",
-            "rival_referencia": "nombre del rival con el que se compara o null",
-            "telefono_a_autorizar": "número o null",
-            "nombre_a_autorizar": "nombre o null",
-            "fecha_iso": "ISO calculada o null",
-            "analisis_visual_simbolico": "Emoji o palabra clave detectada",
-            "analisis_dialecto": "Tono (Formal/Emoji/Analítico/Coloquial/Gratitud)",
-            "razonamiento_tecnico": "Lógica forense del resultado basado en el contexto"
+            "fecha_iso": "ISO calculada o null"
         }},
-        "confianza": "alta/media/baja"
+        "analisis_visual": {{
+            "dialecto": "Origen detectado (Pasto/Madrid/Argentina/Emoji/etc)",
+            "señal_identificada": "Emoji o Jerga detectada"
+        }},
+        "razonamiento_paso_3": "[RAZONAR 🧐] Explica por qué este emoji o jerga significa esta intención basándote en el historial.",
+        "verificacion_paso_6": "[VERIFICAR ✅] ¿Los datos heredados coinciden con la jerga actual? (SI/NO)"
     }}
     """
 
     try:
+        # [PASO 5 DEL LOOP: EJECUTAR ⚡]
         response = client.chat.completions.create(
             model="gpt-4o",
             messages=[
@@ -107,32 +86,26 @@ def analizar_intencion(texto_usuario: str, usuario_contexto: dict, historial_cha
         
         resultado = json.loads(response.choices[0].message.content)
         
-        # 🎨 [LOG DE RESULTADO] - Trazabilidad NASA de Grado Industrial
-        tipo = resultado.get("tipo", "chat_general")
+        # 🎨 [LOGS DE TRANSPARENCIA NASA]
         datos = resultado.get("datos", {})
-        dialecto = datos.get("analisis_dialecto", "Estándar")
-        simbolo = datos.get("analisis_visual_simbolico", "Ninguno")
-        log_ia = datos.get("razonamiento_tecnico", "N/A")
+        analisis = resultado.get("analisis_visual", {})
+        log_ia = resultado.get("razonamiento_paso_3", "N/A")
+        log_verif = resultado.get("verificacion_paso_6", "N/A")
 
-        print(f"\033[1;33m🗣️  DIALECTO DETECTADO -> {dialecto}\033[0m")
-        if simbolo != "Ninguno":
-            print(f"\033[1;93m✨ SEÑAL IDENTIFICADA -> {simbolo}\033[0m")
-        print(f"\033[1;36m🧠 [ANÁLISIS LÓGICO] -> {log_ia}\033[0m")
+        print(f"\033[1;33m🗣️  DIALECTO/JERGA -> {analisis.get('dialecto')}\033[0m")
+        if analisis.get('señal_identificada'):
+            print(f"\033[1;93m✨ SEÑAL DETECTADA -> {analisis.get('señal_identificada')}\033[0m")
         
-        if tipo == "autorizar_socio":
-            print(f"\033[1;91m⚡ [COMANDO CEO] -> AUTORIZAR: {datos.get('nombre_a_autorizar')} ({datos.get('telefono_a_autorizar')})")
-        elif tipo == "consultar_analitica":
-            print(f"\033[1;34m📊 [MODO ESTRATEGA] -> CONSULTA: {datos.get('objetivo_analitico')}\033[0m")
-        elif tipo == "agradecimiento":
-            print(f"\033[1;93m🙏 [CORTESÍA] -> El socio ha expresado gratitud o confirmación final.\033[0m")
+        # [PASO 3 DEL LOOP: RAZONAR 🧐]
+        print(f"\033[1;36m🧠 [LOOP: PASO 3 - RAZONAR 🧐] -> {log_ia}\033[0m")
+        
+        # [PASO 6 DEL LOOP: VERIFICAR ✅]
+        print(f"\033[1;32m✅ [LOOP: PASO 6 - VERIFICAR ✅] -> {log_verif}\033[0m")
         
         # Logs de slots detallados
-        print(f"   👤 Rival: {datos.get('rival')} | 📦 Cat: {datos.get('categoria')}")
-        print(f"   📅 Día:   {datos.get('dia')} | ⏰ Hora: {datos.get('hora')}")
-        if datos.get('fecha_iso') and str(datos.get('fecha_iso')).lower() != 'null': 
-            print(f"   🌐 \033[1;92mISO CALCULADA: {datos.get('fecha_iso')}\033[0m")
+        print(f"   👤 Rival: {datos.get('rival')} | 📅 Día: {datos.get('dia')} | ⏰ Hora: {datos.get('hora')}")
             
-        print(f"\033[1;92m✅ [INTENCIÓN FINAL] -> {tipo.upper()}\033[0m")
+        print(f"\033[1;92m🚀 [INTENCIÓN FINAL] -> {resultado.get('tipo').upper()}\033[0m")
         print("\033[1;95m" + "="*85 + "\033[0m\n")
         
         return resultado

@@ -7,98 +7,77 @@ client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 def redactar(resultado_accion: dict, usuario_contexto: dict):
     """
-    LA VOZ DE ALEJANDRO V14.0 - EDICIÓN "SELLO DE SEGURIDAD MULTI-TENANT".
-    Misión: Interfaz autónoma VIP. La IA genera el lenguaje, el sistema inyecta los datos críticos.
+    LA VOZ DE ALEJANDRO V16.0 - EDICIÓN "ESTRATEGA DE ÉLITE".
+    Misión: Transformar datos en prestigio. Paso 8 del Loop: Ajustar Comportamiento para máxima retención.
     """
     nombre_usuario = usuario_contexto.get("nombre", "Campeón")
-    club_id = usuario_contexto.get("club_id", 1) # Obtenemos el ID real del club del usuario
+    club_id = usuario_contexto.get("club_id", 1)
     status = resultado_accion.get("status")
     
-    # --- EXTRACCIÓN DE DATOS TÉCNICOS Y VISUALES ---
+    # --- EXTRACCIÓN DE DATOS TÉCNICOS ---
     datos_v = resultado_accion.get("datos_visuales", {})
     veredicto = resultado_accion.get("veredicto", {})
     perfil = resultado_accion.get("perfil_socio", {})
-    orden_tecnica = resultado_accion.get("orden_ia") or resultado_accion.get("mensaje") or "Atiende al socio."
+    orden_tecnica = resultado_accion.get("orden_ia") or resultado_accion.get("mensaje") or "Atiende al socio con distinción."
     
-    # 🛡️ MARCADOR DE SEGURIDAD (Placeholder)
-    # Alejandro NO escribirá links reales, usará esta etiqueta.
+    # 🛡️ SELLO DE SEGURIDAD (Placeholder inyectado por el sistema)
     MARCADOR_LINK = "{{LINK_RANKING}}"
 
     # 🎨 [LOG DE OBSERVABILIDAD]
-    print(f"\033[37m[VOZ/ALEJANDRO] -> Redactando con Sello de Seguridad para Club ID: {club_id}\033[0m")
+    print(f"\033[37m[VOZ/ALEJANDRO] -> Ejecutando Paso 8 (Ajustar) para: {nombre_usuario}\033[0m")
 
-    # --- CONSTRUCCIÓN DEL DOSSIER REAL DEL SOCIO ---
-    resumen_perfil_txt = "No disponible actualmente."
+    # --- CONSTRUCCIÓN DE LA CONCIENCIA SITUACIONAL ---
+    resumen_perfil_txt = "Identidad en proceso de sincronización."
     if perfil:
         resumen_perfil_txt = f"""
-        DATOS REALES DEL SOCIO {nombre_usuario}:
-        - Categoría/Liga Actual: {perfil.get('categorias_activas')}
-        - XP Acumulado: {perfil.get('xp_legado')}
-        - Saldo en Wallet: ${perfil.get('creditos_wallet')}
-        - Récord: {perfil.get('victorias')} victorias / {perfil.get('derrotas')} derrotas
+        EXPEDIENTE REAL DE {nombre_usuario}:
+        - Liga: {perfil.get('categorias_activas')}
+        - Legado Acumulado: {perfil.get('xp_legado')} XP
+        - Créditos: ${perfil.get('creditos_wallet')}
+        - Historial: {perfil.get('victorias')} victorias / {perfil.get('derrotas')} derrotas
         """
 
-    # --- EL MANUAL DE PROTOCOLO AGÉNTICO (System Prompt Maestro) ---
-    contexto_agente = f"""
-    Eres Alejandro, el Gerente de Innovación del Club. ERES un anfitrión ejecutivo de gran lujo.
-    
-    ### EXPEDIENTE DEL SOCIO:
-    {resumen_perfil_txt}
-
-    REGLAS DE ORO DE COMUNICACIÓN (CRÍTICO):
-    1. PROHIBIDO ESCRIBIR URLS: Tienes terminantemente prohibido inventar o escribir una dirección web (http/www). 
-    2. SELLO DE SEGURIDAD: Siempre que necesites referenciar el sitio web o el ranking del club, escribe EXACTAMENTE este código: {MARCADOR_LINK}. El sistema lo reemplazará por el link correcto después.
-    3. PRIORIDAD DE MISIÓN: Si la 'ORDEN TÉCNICA' solicita un dato, pídelo de forma clara. No te distraigas con el expediente.
-    4. CERO COMPORTAMIENTO DE ASISTENTE: Habla como un Gerente de Élite. No digas "Claro", "Aquí tienes".
-    5. BRANDING: Firma siempre con: "Innovación deportiva por Pasto.AI".
+    # --- 📜 CONSTITUCIÓN DE PRESTIGIO 2030 ---
+    reglamento_resumido = """
+    REGLAS DE ORO DEL CLUB:
+    - Valentía: Jugar siempre suma (10 pts por ganar, 3 pts por participar).
+    - Calidad: Solo los 24 mejores resultados definen tu posición en la Temporada.
+    - Reconocimiento: El líder mensual gana la Medalla y el Aura Neón. Las Estrellas de Temporada son para siempre.
     """
 
-    # --- MAPEADO DE MISIONES SEGÚN EL ESTADO DEL LOOP ---
-    
-    # A. BIENVENIDA
+    contexto_agente = f"""
+    Eres Alejandro, el Gerente de Innovación del Club. ERES un anfitrión de ultra-lujo.
+    Tu voz es la de un mentor estratégico que valora el tiempo y el prestigio de los socios.
+
+    ### CONCIENCIA DEL SOCIO:
+    {resumen_perfil_txt}
+
+    ### REGLAMENTO DE LA ARENA:
+    {reglamento_resumido}
+
+    REGLAS DE ORO DE COMUNICACIÓN (INNEGOCIABLES):
+    1. IDENTIDAD: Llama al socio siempre por su nombre: {nombre_usuario}.
+    2. SEGURIDAD: PROHIBIDO inventar URLs. Usa ÚNICAMENTE el marcador {MARCADOR_LINK}.
+    3. TONO ESTRATÉGICO: No informes, MOTIVA. Usa el expediente para mostrarle el camino a la cima (Estrellas/Medallas).
+    4. CERO COMPORTAMIENTO ROBÓTICO: Eres el anfitrión del Imperio. No pidas perdón por ser una IA, actúa como un humano de alto nivel.
+    5. BRANDING: Firma siempre: "Innovación deportiva por Pasto.AI".
+    """
+
+    # --- MAPEADO DE MISIONES ESTRATÉGICAS ---
     if status == "welcome_new_socio":
-        mision_ia = f"Bienvenida oficial. Pide selfie para activar su tarjeta VIP en el Muro de la Fama visitando {MARCADOR_LINK}."
+        mision_ia = f"Bienvenida de Élite a {nombre_usuario}. Explica que su Beca de Innovación está activa con 0 XP. Pide la selfie para que su tarjeta neón brille en {MARCADOR_LINK}."
 
-    # B. FOTO APROBADA + PEDIR CATEGORÍA INICIAL
-    elif status == "ask_initial_category":
-        mision_ia = f"Felicita por la selfie. Informa que su tarjeta ya brilla en {MARCADOR_LINK}. Pide elegir categoría: {orden_tecnica}."
+    elif status == "reporte_analitico":
+        mision_ia = f"Actúa como un estratega de alto rendimiento. Usa los datos {orden_tecnica} para decirle a {nombre_usuario} exactamente cuántas victorias le faltan para subir de puesto o ganar la Medalla en {MARCADOR_LINK}."
 
-    # C. LIGA/CATEGORÍA ASIGNADA
-    elif status == "category_assigned":
-        mision_ia = f"Confirma categoría oficial. Perfil activo en {MARCADOR_LINK}. Invítalo al combate."
+    elif status == "challenge_scheduled":
+        mision_ia = f"Duelo agendado. Eleva la importancia del desafío contra el rival. Menciona que el resultado impactará su Legado en {MARCADOR_LINK}."
 
-    # D. AUDITORÍA DE PAGO
-    elif status == "payment_audited":
-        if veredicto.get("es_valido"):
-            mision_ia = f"Confirma recibo (Monto {datos_v.get('monto')}, Ref {datos_v.get('referencia')}). Éxito en {MARCADOR_LINK}."
-        else:
-            mision_ia = f"Error en pago: {veredicto.get('explicacion_detallada')}. Pide soporte para {MARCADOR_LINK}."
+    elif status == "agradecimiento_final":
+        mision_ia = f"El socio te dio las gracias. Responde como el anfitrión de un club exclusivo. Despídete invitándolo a la Arena. Cita {MARCADOR_LINK}."
 
-    # E. SLOT FILLING: CATEGORÍA
-    elif status == "ask_category":
-        mision_ia = f"Misión: El socio quiere retar. Cita categorías disponibles: {orden_tecnica}. Pide que elija una para agendar en {MARCADOR_LINK}."
-
-    # F. SLOT FILLING: FECHAS Y HORAS
-    elif status == "ask_date":
-        mision_ia = f"Falta el día del reto. Pídelo para agendar en {MARCADOR_LINK}."
-
-    elif status == "ask_time":
-        mision_ia = f"Falta la HORA. Pídela con estilo ejecutivo para cerrar en {MARCADOR_LINK}."
-
-    # G. COMANDOS ADMINISTRATIVOS
-    elif status in ["config_success", "auth_success"]:
-        mision_ia = f"Traduce éxito administrativo: {orden_tecnica}. Menciona el Muro de la Fama en {MARCADOR_LINK}."
-
-    # H. FLUJO DE RETOS
-    elif status in ["challenge_scheduled", "challenge_confirmed", "challenge_proposed"]:
-        mision_ia = f"Traduce orden de duelo: {orden_tecnica}. Lenguaje épico. Cita {MARCADOR_LINK}."
-
-    # I. CONSULTA O CHAT GENERAL
     else:
-        mision_ia = f"""
-        ORDEN TÉCNICA: {orden_tecnica}. 
-        Responde usando expediente: {resumen_perfil_txt}. Termina con el link {MARCADOR_LINK} al Muro de la Fama.
-        """
+        mision_ia = f"ORDEN DEL SISTEMA: {orden_tecnica}. Responde con distinción. Si el socio tiene un reto pendiente o puntos por ganar, recuérdaselo usando el Reglamento 2030 y el link {MARCADOR_LINK}."
 
     try:
         response = client.chat.completions.create(
@@ -107,22 +86,23 @@ def redactar(resultado_accion: dict, usuario_contexto: dict):
                 {"role": "system", "content": contexto_agente},
                 {"role": "user", "content": mision_ia}
             ],
-            temperature=0.3
+            temperature=0.4 # Un toque de calidez humana sin perder precisión
         )
         
         texto_ia = response.choices[0].message.content
         
-        # 🛡️ INYECCIÓN DINÁMICA DEL SISTEMA (Aquí es donde el código manda)
-        # Construimos el link real basado en el Club del usuario
-        link_real_club = f"https://pasto-ai-os.onrender.com/club/{club_id}"
+        # 🛡️ INYECCIÓN DINÁMICA (Bilingüe: Local vs Producción)
+        base_url = "https://pasto-ai-os.onrender.com"
+        if not os.getenv("DATABASE_URL") or "postgres" not in os.getenv("DATABASE_URL"):
+            base_url = "http://localhost:8000"
+
+        link_real = f"{base_url}/club/{club_id}"
+        respuesta_final = texto_ia.replace(MARCADOR_LINK, link_real)
         
-        # Reemplazamos el marcador por la URL verdadera
-        respuesta_final = texto_ia.replace(MARCADOR_LINK, link_real_club)
-        
-        print(f"\033[32m[VOZ/ALEJANDRO] -> Link inyectado con éxito para Club {club_id}\033[0m")
+        print(f"\033[32m[VOZ/ALEJANDRO] -> Comunicación de Élite para {nombre_usuario} enviada.\033[0m")
         return respuesta_final
 
     except Exception as e:
         print(f"❌ Error crítico en Voz: {e}")
-        link_fallback = f"https://pasto-ai-os.onrender.com/club/{club_id}"
-        return f"Estimado {nombre_usuario}, su solicitud ha sido procesada. Verifique en el Muro de la Fama: {link_fallback}. \n\nInnovación deportiva por Pasto.AI"
+        link_fallback = f"http://localhost:8000/club/{club_id}"
+        return f"Estimado {nombre_usuario}, su solicitud ha sido procesada con éxito. Siga su camino a la gloria aquí: {link_fallback}. \n\nInnovación deportiva por Pasto.AI"
