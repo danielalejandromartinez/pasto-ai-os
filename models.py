@@ -4,7 +4,6 @@ from datetime import datetime
 from database import Base
 
 # --- TABLA INTERMEDIA: JUGADORES Y CATEGORÍAS (Escalabilidad Many-to-Many) ---
-# Un jugador puede pertenecer a varias categorías (Ej: General y Senior)
 player_categories = Table(
     "player_categories",
     Base.metadata,
@@ -27,7 +26,6 @@ class Club(Base):
     agent_logs = relationship("AgentMemory", back_populates="club")
     system_tasks = relationship("TaskQueue", back_populates="club")
     seasons = relationship("Season", back_populates="club")
-    # Nueva relación: Menú de categorías del club
     categories = relationship("Category", back_populates="club")
 
 class Category(Base):
@@ -37,7 +35,7 @@ class Category(Base):
     """
     __tablename__ = "categories"
     id = Column(Integer, primary_key=True, index=True)
-    name = Column(String, index=True) # Ej: "Primera", "Sub-12", "Damas"
+    name = Column(String, index=True) 
     club_id = Column(Integer, ForeignKey("clubs.id"))
     
     club = relationship("Club", back_populates="categories")
@@ -57,6 +55,10 @@ class Player(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, index=True)
     eternal_points = Column(Float, default=0.0) 
+    
+    # 🆕 AGREGADO: Rango de Prestigio (Insignia Universal)
+    rank = Column(String, default="BRONCE") # BRONCE, PLATA, ORO, LEYENDA
+    
     achievements = Column(JSON, default={"stars": 0, "medals": 0, "badges": []})
     wallet_balance = Column(Float, default=0.0)
     elo = Column(Integer, default=1000)
@@ -65,8 +67,6 @@ class Player(Base):
     status_tags = Column(JSON, default={}) 
     tournament_registered = Column(Boolean, default=False) 
     
-    # Mantenemos 'category' como string para compatibilidad, 
-    # pero ahora usamos la relación dinámica 'categories'
     category = Column(String, default="General") 
     avatar_url = Column(String, nullable=True)
     last_interaction = Column(DateTime, default=datetime.utcnow)
@@ -76,9 +76,15 @@ class Player(Base):
     owner_id = Column(Integer, ForeignKey("whatsapp_users.id"))
     owner = relationship("WhatsAppUser", back_populates="players")
     point_history = relationship("PointTransaction", back_populates="player")
-    
-    # Relación con sus categorías asignadas
-    categories = relationship("Category", secondary=player_categories, back_populates="players")
+    categories = relationship("Category", secondary=player_categories, back_populates="categories")
+
+    # 🧠 LÓGICA AGÉNTICA DE PRESTIGIO: Actualiza el rango según los puntos
+    def actualizar_prestigio(self):
+        xp = self.eternal_points
+        if xp <= 500: self.rank = "BRONCE"
+        elif xp <= 1500: self.rank = "PLATA"
+        elif xp <= 3000: self.rank = "ORO"
+        else: self.rank = "LEYENDA"
 
 class Season(Base):
     __tablename__ = "seasons"
@@ -95,7 +101,6 @@ class PointTransaction(Base):
     id = Column(Integer, primary_key=True, index=True)
     player_id = Column(Integer, ForeignKey("players.id"))
     match_id = Column(Integer, ForeignKey("matches.id"), nullable=True)
-    # Nueva pieza: Saber en qué categoría se ganaron estos puntos
     category_id = Column(Integer, ForeignKey("categories.id"), nullable=True)
     points_earned = Column(Float) 
     match_type = Column(String) 
@@ -108,11 +113,8 @@ class Tournament(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String)
     status = Column(String, default="inscription") 
-    
-    # Vinculamos el torneo a una categoría específica del menú del club
     category_id = Column(Integer, ForeignKey("categories.id"), nullable=True)
-    category = Column(String, default="General") # Legacy compatibility
-    
+    category = Column(String, default="General") 
     config_json = Column(JSON, default={"min_matches": 15})
     club_id = Column(Integer, ForeignKey("clubs.id"))
     club = relationship("Club", back_populates="tournaments")
@@ -124,10 +126,7 @@ class Match(Base):
     player_1_id = Column(Integer, ForeignKey("players.id"))
     player_2_id = Column(Integer, ForeignKey("players.id"))
     winner_id = Column(Integer, ForeignKey("players.id"), nullable=True)
-    
-    # Nuevo: Los partidos ahora pertenecen a una categoría
     category_id = Column(Integer, ForeignKey("categories.id"), nullable=True)
-    
     score = Column(String, nullable=True) 
     parciales = Column(String, nullable=True) 
     match_type = Column(String, default="challenge") 
@@ -135,7 +134,6 @@ class Match(Base):
     is_finished = Column(Boolean, default=False)
     scheduled_time = Column(DateTime, nullable=True)
     stake = Column(Float, default=50.0) 
-
     tournament_id = Column(Integer, ForeignKey("tournaments.id"), nullable=True)
     tournament = relationship("Tournament", back_populates="matches")
     player_1 = relationship("Player", foreign_keys=[player_1_id])
@@ -165,7 +163,6 @@ class AgentMemory(Base):
 class MessageHistory(Base):
     __tablename__ = "message_history"
     id = Column(Integer, primary_key=True, index=True)
-    # 🆕 AGREGADO: Sello único para evitar que Meta repita mensajes (Deduplicación)
     whatsapp_msg_id = Column(String, unique=True, index=True, nullable=True)
     phone_number = Column(String, index=True)
     role = Column(String) 
