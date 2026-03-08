@@ -28,12 +28,13 @@ class Orchestrator:
         if not jugador:
             return None
         
-        # Obtenemos los nombres de las categorías donde compite literalmente
-        categorias_nombres = [c.name for c in jugador.categories] if jugador.categories else ["General"]
+        # ✅ SINCRONIZACIÓN: Usamos el nombre nuevo player_categories_list definido en models.py
+        categorias_nombres = [c.name for c in jugador.player_categories_list] if jugador.player_categories_list else ["General"]
         
         # Construimos el paquete de datos de "Conciencia Situacional"
         return {
             "nombre_oficial": jugador.name,
+            "rango_prestigio": jugador.prestige_rank, # Pilar 8
             "xp_legado": int(jugador.eternal_points),
             "creditos_wallet": float(jugador.wallet_balance),
             "victorias": jugador.wins,
@@ -44,7 +45,7 @@ class Orchestrator:
 
     def procesar_intencion(self, intencion: dict):
         """
-        MOTOR AGÉNTICO V23.5 - EDICIÓN "IMPERIO ROBUSTO".
+        MOTOR AGÉNTICO V24.0 - EDICIÓN "INTEGRIDAD TOTAL".
         Misión: Gestión autónoma total siguiendo los 8 pasos del loop obligatorio.
         """
         # --- 1. [OBSERVAR] ---
@@ -54,7 +55,7 @@ class Orchestrator:
         club_id = self.contexto.get("club_id")
         rol = self.contexto.get("rol")
         nombre_contexto = self.contexto.get("nombre", "Socio")
-        es_demo = intencion.get("es_demo", False) # 🆕 Captura señal de demo
+        es_demo = intencion.get("es_demo", False) # Captura señal de demo
         
         # ============================================================
         # 🛡️ CAPA 1: SEGURIDAD (WHITELIST)
@@ -103,7 +104,7 @@ class Orchestrator:
             if not tel_a_autorizar:
                 return {"status": "info", "perfil_socio": expediente, "orden_ia": "ORDEN: Solicite el número de teléfono para habilitar al socio."}
             try:
-                # --- 5. [EJECUTAR] ---
+                # 🛡️ DEDUPLICACIÓN DE AUTORIZACIÓN
                 socio_existente = self.db.query(WhiteList).filter_by(phone_number=tel_a_autorizar).first()
                 if socio_existente:
                     return {"status": "auth_success", "perfil_socio": expediente, "orden_ia": f"ORDEN: Confirme que {nombre_invitado} ya tiene su acceso activo."}
@@ -228,7 +229,7 @@ class Orchestrator:
                 if match_check:
                     print(f"\033[1;32m[LOOP: PASO 6 - VERIFICAR ✅] -> Match ID {match_check.id} confirmado en DB.\033[0m")
                     usuario_db.memory["slots_reto"] = {}; flag_modified(usuario_db, "memory"); self.db.commit()
-                    return {"status": "challenge_scheduled", "perfil_socio": expediente, "notificar_a": res_reto["telefono_rival"], "mensaje_proactivo": f"🎾 ¡Hola {res_reto['rival']}! {jugador.name} le envió un reto.", "orden_ia": "ORDEN: Confirma el envío del reto."}
+                    return {"status": "challenge_scheduled", "perfil_socio": expediente, "notificar_a": res_reto["telefono_rival"], "mensaje_proactivo": res_reto["reply"], "orden_ia": "ORDEN: Confirma el envío del reto."}
             
             return {"status": "info", "perfil_socio": expediente, "orden_ia": f"ORDEN: Informe: {res_reto.get('reply')}"}
 

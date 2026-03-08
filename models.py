@@ -26,12 +26,14 @@ class Club(Base):
     agent_logs = relationship("AgentMemory", back_populates="club")
     system_tasks = relationship("TaskQueue", back_populates="club")
     seasons = relationship("Season", back_populates="club")
+    
+    # Conexión con el menú de ligas del club
     categories = relationship("Category", back_populates="club")
 
 class Category(Base):
     """
     LA LLAVE DE LA FLEXIBILIDAD MUNDIAL:
-    Aquí cada club define sus propios niveles (1, 2, 3 o A, B, C o Damas/Varones)
+    Configurable por cada club (Primera, Segunda, Damas, etc.)
     """
     __tablename__ = "categories"
     id = Column(Integer, primary_key=True, index=True)
@@ -39,7 +41,7 @@ class Category(Base):
     club_id = Column(Integer, ForeignKey("clubs.id"))
     
     club = relationship("Club", back_populates="categories")
-    players = relationship("Player", secondary=player_categories, back_populates="categories")
+    players = relationship("Player", secondary=player_categories, back_populates="player_categories_list")
 
 class WhatsAppUser(Base):
     __tablename__ = "whatsapp_users"
@@ -56,8 +58,8 @@ class Player(Base):
     name = Column(String, index=True)
     eternal_points = Column(Float, default=0.0) 
     
-    # 🆕 AGREGADO: Rango de Prestigio (Insignia Universal)
-    rank = Column(String, default="BRONCE") # BRONCE, PLATA, ORO, LEYENDA
+    # 🛡️ MEJORA DE ROBUSTEZ: Cambiamos 'rank' por 'prestige_rank' para evitar errores de Postgres
+    prestige_rank = Column(String, default="BRONCE")
     
     achievements = Column(JSON, default={"stars": 0, "medals": 0, "badges": []})
     wallet_balance = Column(Float, default=0.0)
@@ -76,15 +78,19 @@ class Player(Base):
     owner_id = Column(Integer, ForeignKey("whatsapp_users.id"))
     owner = relationship("WhatsAppUser", back_populates="players")
     point_history = relationship("PointTransaction", back_populates="player")
-    categories = relationship("Category", secondary=player_categories, back_populates="categories")
+    
+    # Relación con sus categorías asignadas
+    player_categories_list = relationship("Category", secondary=player_categories, back_populates="players")
 
-    # 🧠 LÓGICA AGÉNTICA DE PRESTIGIO: Actualiza el rango según los puntos
     def actualizar_prestigio(self):
+        """
+        Lógica automática de ascenso de rango
+        """
         xp = self.eternal_points
-        if xp <= 500: self.rank = "BRONCE"
-        elif xp <= 1500: self.rank = "PLATA"
-        elif xp <= 3000: self.rank = "ORO"
-        else: self.rank = "LEYENDA"
+        if xp <= 500: self.prestige_rank = "BRONCE"
+        elif xp <= 1500: self.prestige_rank = "PLATA"
+        elif xp <= 3000: self.prestige_rank = "ORO"
+        else: self.prestige_rank = "LEYENDA"
 
 class Season(Base):
     __tablename__ = "seasons"
@@ -114,7 +120,7 @@ class Tournament(Base):
     name = Column(String)
     status = Column(String, default="inscription") 
     category_id = Column(Integer, ForeignKey("categories.id"), nullable=True)
-    category = Column(String, default="General") 
+    category = Column(String, default="General")
     config_json = Column(JSON, default={"min_matches": 15})
     club_id = Column(Integer, ForeignKey("clubs.id"))
     club = relationship("Club", back_populates="tournaments")
@@ -134,6 +140,7 @@ class Match(Base):
     is_finished = Column(Boolean, default=False)
     scheduled_time = Column(DateTime, nullable=True)
     stake = Column(Float, default=50.0) 
+
     tournament_id = Column(Integer, ForeignKey("tournaments.id"), nullable=True)
     tournament = relationship("Tournament", back_populates="matches")
     player_1 = relationship("Player", foreign_keys=[player_1_id])

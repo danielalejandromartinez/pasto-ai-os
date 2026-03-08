@@ -100,7 +100,8 @@ async def ver_club(request: Request, club_id: int, db: Session = Depends(get_db)
                 ).order_by(PointTransaction.points_earned.desc()).limit(24).all()
                 puntos_temporada = sum(t.points_earned for t in transacciones)
 
-            mis_categorias = [c.name for c in p.categories]
+            # ✅ SINCRONIZACIÓN: Usamos el nombre nuevo player_categories_list
+            mis_categorias = [c.name for c in p.player_categories_list]
             if not mis_categorias: mis_categorias = ["General"]
 
             avatar = p.avatar_url if p.avatar_url else None
@@ -113,7 +114,8 @@ async def ver_club(request: Request, club_id: int, db: Session = Depends(get_db)
                 "season_points": int(puntos_temporada),
                 "monthly_points": int(puntos_mes),
                 "stars": p.achievements.get("stars", 0) if p.achievements else 0,
-                "categorias": mis_categorias
+                "categorias": mis_categorias,
+                "rank": p.prestige_rank # Pilar 8: Rangos de Prestigio
             })
 
         retos_db = db.query(Match).filter(and_(Match.is_finished == False, or_(Match.status == 'proposed', Match.status == 'scheduled'))).all()
@@ -126,6 +128,67 @@ async def ver_club(request: Request, club_id: int, db: Session = Depends(get_db)
     except Exception as e:
         print(f"❌ Error visualizando web: {e}")
         return HTMLResponse(content="Error en Muro de la Fama", status_code=500)
+
+# ============================================================
+# 🔎 PIEZA MAESTRA: API DE EXPEDIENTE TÁCTICO (PILAR 12)
+# ============================================================
+@app.get("/api/player/{player_id}/stats")
+async def obtener_expediente_tactico(player_id: int, db: Session = Depends(get_db)):
+    """
+    Misión: Extraer la historia secreta del guerrero para el show de Rafael.
+    """
+    try:
+        print(f"\n{C_OBS}[LOOP: PASO 1 - OBSERVANDO 👁️] -> Extrayendo Expediente Táctico para ID: {player_id}{C_END}")
+        
+        jugador = db.query(Player).filter(Player.id == player_id).first()
+        if not jugador: return {"status": "error", "mensaje": "Guerrero no localizado."}
+
+        batallas = db.query(Match).filter(
+            and_(
+                or_(Match.player_1_id == player_id, Match.player_2_id == player_id),
+                Match.is_finished == True
+            )
+        ).order_by(Match.scheduled_time.desc()).all()
+
+        h2h_data = {}
+        historial_reciente = []
+        
+        for m in batallas:
+            rival = m.player_2 if m.player_1_id == player_id else m.player_1
+            rival_name = rival.name
+            
+            if rival_name not in h2h_data:
+                h2h_data[rival_name] = {"ganados": 0, "perdidos": 0, "total": 0}
+            
+            h2h_data[rival_name]["total"] += 1
+            if m.winner_id == player_id: h2h_data[rival_name]["ganados"] += 1
+            else: h2h_data[rival_name]["perdidos"] += 1
+
+            if len(historial_reciente) < 5:
+                historial_reciente.append({
+                    "rival": rival_name,
+                    "resultado": m.score,
+                    "fecha": m.scheduled_time.strftime("%d/%m/%Y") if m.scheduled_time else "TBD",
+                    "yo_gane": m.winner_id == player_id
+                })
+
+        print(f"{C_VER}[LOOP: PASO 6 - VERIFICANDO ✅] -> Datos tácticos validados e íntegros.{C_END}")
+
+        return {
+            "status": "success",
+            "perfil": {
+                "nombre": jugador.name,
+                "rango": jugador.prestige_rank,
+                "wins": jugador.wins,
+                "losses": jugador.losses,
+                "total": jugador.wins + jugador.losses
+            },
+            "recientes": historial_reciente,
+            "h2h": h2h_data
+        }
+    except Exception as e:
+        print(f"❌ Error en Expediente: {e}")
+        return {"status": "error", "mensaje": str(e)}
 
 # ============================================================
 # 📡 API: FINALIZAR PARTIDO (MOTOR DE INCENTIVOS 10/3)
@@ -151,6 +214,7 @@ async def finalizar_partido(request: Request, db: Session = Depends(get_db)):
         db.add(PointTransaction(player_id=ganador.id, match_id=match_id, points_earned=10.0, match_type="challenge", timestamp=datetime.now()))
         participante.eternal_points += 3.0; participante.losses += 1
         db.add(PointTransaction(player_id=participante.id, match_id=match_id, points_earned=3.0, match_type="challenge", timestamp=datetime.now()))
+        
         match.is_finished = True; match.status = "finished"; match.score = data.get("res"); match.winner_id = ganador.id
         db.commit()
         print(f"{C_VER}[LOOP: PASO 6 - VERIFICANDO ✅] -> Muro de la Fama actualizado.{C_END}")
@@ -164,9 +228,6 @@ async def finalizar_partido(request: Request, db: Session = Depends(get_db)):
 async def ver_tablero(request: Request):
     return templates.TemplateResponse("tablero.html", {"request": request})
 
-# ============================================================
-# ☢️ RESET NUCLEAR (PRE-AUTORIZACIÓN DE 10 SOCIOS PARA DEMO)
-# ============================================================
 @app.get("/nuclear-reset")
 def nuclear_reset():
     try:
@@ -187,57 +248,41 @@ def nuclear_reset():
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
-# ============================================================
-# 🧠 EL COCINERO: PROCESAMIENTO TOTAL DEL LOOP (8 PASOS)
-# ============================================================
 async def procesar_mensaje_ia(telefono: str, texto: str, tipo: str, enviar_real: bool = False, media_id: str = None):
     db = SessionLocal()
     try:
         print(f"\n{C_LEA}[LOOP: PASO 7 - APRENDIENDO 📚]{C_END}")
         mensajes_db = db.query(MessageHistory).filter_by(phone_number=telefono).order_by(MessageHistory.timestamp.desc()).limit(6).all()
         historial_chat = [{"role": m.role, "content": m.content} for m in reversed(mensajes_db)]
-        
         print(f"{C_INT}[LOOP: PASO 2 - INTERPRETANDO 🧠]{C_END}")
         if tipo == 'image':
             if enviar_real and media_id: media_service.descargar_foto_perfil(media_id, telefono)
             else: media_service.activar_foto_demo(telefono)
-
         usuario_contexto = user_classifier.clasificar_usuario(telefono)
         intencion = {"tipo": "enviar_comprobante"} if tipo == 'image' else intent_resolver.analizar_intencion(texto, usuario_contexto, historial_chat)
         intencion["es_demo"] = not enviar_real 
-
         orquestador = Orchestrator(db, usuario_contexto)
         resultado = orquestador.procesar_intencion(intencion)
-
         respuesta = generar_respuesta_humana.redactar(resultado, usuario_contexto)
-        
-        # 📢 LOG DE RESPUESTA AGÉNTICA (PASO 8)
         print(f"\n{C_ADJ}——————————————————————————————————————————————————")
         print(f"📢 [LOOP: PASO 8 - AJUSTAR COMPORTAMIENTO 🔄]")
         print(f"   ALEJANDRO RESPONDE A {usuario_contexto.get('nombre')}:")
         print(f"   \"{respuesta}\"")
         print(f"——————————————————————————————————————————————————{C_END}")
-
         msg_bot = MessageHistory(phone_number=telefono, role="assistant", content=respuesta)
         db.add(msg_bot); db.commit()
-
         if enviar_real: enviar_whatsapp(telefono, respuesta)
-        
         proactivo = None
         if "notificar_a" in resultado and "mensaje_proactivo" in resultado:
             if enviar_real: enviar_whatsapp(resultado["notificar_a"], resultado["mensaje_proactivo"])
             proactivo = {"to": resultado["notificar_a"], "msg": resultado["mensaje_proactivo"]}
-
         await manager.broadcast("update", 1)
         return {"respuesta": respuesta, "proactivo": proactivo}
     except Exception as e:
         print(f"\033[1;31m❌ [ERROR CRÍTICO] Loop falló: {e}\033[0m")
-        return {"respuesta": "Sistema en mantenimiento de prestigio...", "proactivo": None}
+        return {"respuesta": "Sincronizando sistemas...", "proactivo": None}
     finally: db.close()
 
-# ============================================================
-# 🤖 SIMULADOR PROFESIONAL PASTO.AI 2030 (v3.1 - AUTO-SCROLL)
-# ============================================================
 @app.get("/test-chat", response_class=HTMLResponse)
 async def chat_local():
     return """
@@ -253,8 +298,8 @@ async def chat_local():
             .header h1 { font-family: 'Orbitron'; font-size: 14px; letter-spacing: 6px; color: var(--neon); margin: 0; text-shadow: 0 0 15px var(--neon); }
             .chat-box { flex: 1; overflow-y: auto; padding: 25px; display: flex; flex-direction: column; gap: 15px; scrollbar-width: thin; scrollbar-color: var(--neon) transparent; scroll-behavior: smooth; }
             .msg { max-width: 85%; padding: 14px 20px; border-radius: 18px; font-size: 14px; line-height: 1.6; word-wrap: break-word; }
-            .user { align-self: flex-end; background: var(--neon); color: black; font-weight: 800; border-bottom-right-radius: 2px; }
-            .bot { align-self: flex-start; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-bottom-left-radius: 2px; color: #eee; }
+            .user { align-self: flex-end; background: var(--neon); color: black; font-weight: 800; border-bottom-right-radius: 4px; }
+            .bot { align-self: flex-start; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-bottom-left-radius: 4px; color: #eee; }
             .input-area { padding: 25px; border-top: 1px solid rgba(255,255,255,0.05); background: rgba(0,0,0,0.4); }
             select, input { width: 100%; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); padding: 14px; color: white; border-radius: 12px; outline: none; font-family: 'Rajdhani'; margin-bottom: 12px; font-size: 16px; }
             select { color: var(--neon); font-family: 'Orbitron'; font-size: 10px; font-weight: bold; letter-spacing: 2px; height: 50px; cursor: pointer; }
@@ -269,7 +314,7 @@ async def chat_local():
         <div class="terminal">
             <div class="header">
                 <h1>SANDBOX_OS_2030</h1>
-                <div style="font-size: 8px; opacity: 0.3; margin-top: 8px;">VIRTUAL_WHATSAPP_SIMULATOR</div>
+                <div style="font-size: 8px; opacity: 0.3; margin-top: 8px; letter-spacing: 3px;">VIRTUAL_WHATSAPP_SIMULATOR</div>
             </div>
             <div id="chat" class="chat-box">
                 <div class="msg bot">Vínculo establecido. Seleccione una identidad para transmitir su señal.</div>
