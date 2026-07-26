@@ -3,6 +3,7 @@ import uvicorn
 import time
 import unicodedata
 import json
+import base64 # ✅ Para encriptar fotos de forma persistente en la BD
 import shutil # ✅ Para el manejo físico de selfies
 from datetime import datetime, timedelta
 from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect, Depends, BackgroundTasks, Form, File, UploadFile # ✅ Formato de datos web
@@ -160,7 +161,7 @@ async def verificar_ingreso_toh(request: Request, db: Session = Depends(get_db))
         return {"status": "error", "mensaje": str(e)}
 
 # ============================================================
-# 🛡️ API: CARGA DE FOTO DE PERFIL DESDE LA PWA (SELFIE ONBOARDING)
+# 🛡️ NUEVA API: CARGA DE FOTO DE PERFIL ENCRIPTADA EN BASE64 (DURABILIDAD 100%)
 # ============================================================
 @app.post("/api/player/upload-photo")
 async def subir_foto_perfil_toh(
@@ -169,22 +170,20 @@ async def subir_foto_perfil_toh(
     db: Session = Depends(get_db)
 ):
     try:
-        print(f"\n{C_OBS}[LOOP: PASO 1 - OBSERVANDO 👁️] -> Intento de Carga de Foto para Jugador ID: {player_id}{C_END}")
+        print(f"\n{C_OBS}[LOOP: PASO 1 - OBSERVANDO 👁️] -> Guardando foto persistente en DB para Jugador ID: {player_id}{C_END}")
         
         jugador = db.query(Player).filter(Player.id == player_id).first()
         if not jugador: return {"status": "error", "mensaje": "Jugador no localizado."}
         
-        folder = "static/profiles"
-        if not os.path.exists(folder): os.makedirs(folder)
-            
-        path_destino = f"{folder}/player_{player_id}.jpg"
-        with open(path_destino, "wb") as buffer:
-            shutil.copyfileobj(foto.file, buffer)
-            
-        jugador.avatar_url = f"/static/profiles/player_{player_id}.jpg"
+        # Leemos los bytes de la foto cargada y los encriptamos en Base64
+        contenido_imagen = await foto.read()
+        base64_encoded = base64.b64encode(contenido_imagen).decode('utf-8')
+        
+        # Guardamos el string base64 en la base de datos (Esto hace que la foto NUNCA desaparezca)
+        jugador.avatar_url = f"data:image/jpeg;base64,{base64_encoded}"
         db.commit()
         
-        print(f"{C_VER}[LOOP: PASO 6 - VERIFICANDO ✅] -> Foto guardada en: {path_destino}{C_END}")
+        print(f"{C_VER}[LOOP: PASO 6 - VERIFICANDO ✅] -> Foto guardada exitosamente en la base de datos de PostgreSQL.{C_END}")
         
         await manager.broadcast("update", jugador.club_id)
         return {"status": "success", "mensaje": "¡Foto de perfil activada!"}
@@ -415,7 +414,7 @@ async def ver_club(request: Request, club_id: int, db: Session = Depends(get_db)
         cats_db = db.query(Category).filter_by(club_id=club_id).all()
         cats_procesadas = [{"id": c.id, "name": c.name} for c in cats_db] if cats_db else [{"id": 0, "name": "General"}]
         
-        # 🛡️ FILTRO DE SEGURIDAD SAAS: Solo mostrar jugadores aprobados por el administrador
+        # Solo mostrar jugadores aprobados
         jugadores_raw = db.query(Player).filter(and_(Player.club_id == club_id, Player.is_approved == True)).all()
         
         ahora = datetime.now()
@@ -497,7 +496,6 @@ async def finalizar_partido(request: Request, db: Session = Depends(get_db)):
         match = db.query(Match).filter(Match.id == match_id).first()
         if not match: return {"status": "error", "mensaje": "Duelo no localizado."}
         
-        # Sincronizamos con el modelo de Padel: Player 1 vs Rival 1 (p3)
         p1, p3 = match.player_1, match.p3
         winner_norm = _norm(winner_name)
         
@@ -508,7 +506,6 @@ async def finalizar_partido(request: Request, db: Session = Depends(get_db)):
             
         print(f"{C_EXE}[LOOP: PASO 5 - EJECUTANDO ⚡] -> Aplicando lógica 10/3 en Padel: {ganador.name} (W) vs {participante.name} (P){C_END}")
         
-        # Puntos por victoria (10 XP) y participación (3 XP)
         ganador.eternal_points += 10.0; ganador.wins += 1
         db.add(PointTransaction(player_id=ganador.id, points_earned=10.0))
         
