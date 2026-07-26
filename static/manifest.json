@@ -1,0 +1,37 @@
+{
+  "short_name": "TOH",
+  "name": "TOH | Talento o Habilidad",
+  "icons": [
+    {
+      "src": "/static/club_colombia.png",
+      "type": "image/png",
+      "sizes": "3824x3619"
+    },
+    {
+      "src": "/static/sponsor.png",
+      "type": "image/png",
+      "sizes": "1024x1024"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#050505",
+  "theme_color": "#00f2ff",
+  "display": "standalone",
+  "orientation": "portrait",
+  "screenshots": [
+    {
+      "src": "/static/sponsor.png",
+      "sizes": "1024x1024",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "TOH Arena"
+    },
+    {
+      "src": "/static/sponsor.png",
+      "sizes": "1024x1024",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "TOH Arena Mobile"
+    }
+  ]
+}

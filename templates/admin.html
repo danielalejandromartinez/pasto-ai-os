@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>TOH | Consola de Control</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <style>
+        :root {
+            --brand-color: #00f2ff;
+            --glass-bg: rgba(255, 255, 255, 0.02);
+            --glass-border: rgba(255, 255, 255, 0.08);
+        }
+
+        body { 
+            font-family: 'Rajdhani', sans-serif; background-color: #050505; color: white;
+            background-image: radial-gradient(circle at 50% -20%, var(--brand-color) 0%, transparent 45%);
+            background-attachment: fixed;
+        }
+
+        .sport-font { font-family: 'Rajdhani', sans-serif; text-transform: uppercase; letter-spacing: 2px; }
+        .digital-font { font-family: 'Orbitron', sans-serif; }
+
+        .glass-panel {
+            background: var(--glass-bg); backdrop-filter: blur(30px);
+            border: 1px solid var(--glass-border); border-radius: 24px;
+            padding: 30px;
+        }
+
+        .input-cyber {
+            width: 100%; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1);
+            padding: 15px; border-radius: 12px; color: white; font-family: 'Rajdhani';
+            font-size: 16px; outline: none; transition: 0.3s;
+        }
+        .input-cyber:focus { border-color: var(--brand-color); box-shadow: 0 0 15px rgba(0, 242, 255, 0.2); }
+
+        .btn-cyber {
+            background: rgba(0, 0, 0, 0.6); border: 1px solid var(--brand-color); color: var(--brand-color);
+            padding: 15px 30px; font-family: 'Orbitron'; font-size: 11px; font-weight: 900;
+            text-transform: uppercase; letter-spacing: 2px; cursor: pointer; transition: 0.3s;
+            clip-path: polygon(10% 0, 100% 0, 100% 70%, 90% 100%, 0 100%, 0 30%);
+        }
+        .btn-cyber:hover { background: var(--brand-color); color: black; box-shadow: 0 0 20px var(--brand-color); }
+    </style>
+</head>
+<body class="min-h-screen pb-40">
+
+    <!-- NAV DE CONTROL -->
+    <nav class="fixed top-0 w-full z-50 px-6 md:px-12 h-24 flex items-center justify-between backdrop-blur-md border-b border-white/5">
+        <div class="flex items-center gap-6">
+            <span class="font-bold text-lg md:text-xl sport-font text-white/80">TOH CONSOLE</span>
+            <span class="text-[8px] text-brand digital-font tracking-widest uppercase">Admin_Portal_v1.0</span>
+        </div>
+        <button onclick="window.location.href='/club/{{ club.id }}'" class="bg-white/10 border border-white/20 text-white px-5 py-2 rounded-full text-[10px] digital-font hover:bg-white hover:text-black transition-all">VER ARENA ⚔️</button>
+    </nav>
+
+    <div class="pt-40 pb-8 text-center px-6">
+        <h1 class="text-4xl md:text-5xl font-black sport-font mb-2">CONSOLA DE CONTROL</h1>
+        <p class="text-xs text-white/40 digital-font uppercase tracking-widest">{{ club.name }}</p>
+    </div>
+
+    <div class="max-w-[1200px] mx-auto px-6 grid grid-cols-1 lg:grid-cols-3 gap-8">
+        
+        <!-- 🛡️ PANEL 1: MESA DE ADMISIONES (CONTROL DE SOCIOS) -->
+        <div class="lg:col-span-2 flex flex-col gap-6">
+            <div class="glass-panel flex-1">
+                <h2 class="text-xl font-bold sport-font mb-6 text-brand"><i class="fa-solid fa-user-shield"></i> Admisiones Pendientes</h2>
+                
+                <div id="admisiones-list" class="flex flex-col gap-4">
+                    {% if pendientes %}
+                        {% for jugador in pendientes %}
+                        <div class="flex justify-between items-center p-4 rounded-xl bg-white/5 border border-white/10">
+                            <div>
+                                <h3 class="font-bold text-lg text-white">{{ jugador.name }}</h3>
+                                <p class="text-xs text-white/40 digital-font uppercase">Categoría: {{ jugador.player_categories_list[0].name if jugador.player_categories_list else 'General' }}</p>
+                            </div>
+                            <div class="flex gap-2">
+                                <button onclick="aprobarSocio({{ jugador.id }}, true)" class="bg-green-500/20 text-green-400 border border-green-500/40 px-4 py-2 rounded-lg text-xs font-bold hover:bg-green-500 hover:text-black transition-all">APROBAR</button>
+                                <button onclick="aprobarSocio({{ jugador.id }}, false)" class="bg-red-500/20 text-red-400 border border-red-500/40 px-4 py-2 rounded-lg text-xs font-bold hover:bg-red-500 hover:text-black transition-all">RECHAZAR</button>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <p class="text-white/30 text-center text-sm py-8 italic font-medium">No hay solicitudes de acceso pendientes.</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- 🏟️ PANEL 2: TRANSMISOR DE RESULTADOS DE PADEL -->
+            <div class="glass-panel">
+                <h2 class="text-xl font-bold sport-font mb-6 text-brand"><i class="fa-solid fa-trophy"></i> Transmisor de Marcadores</h2>
+                <div class="grid grid-cols-2 gap-4 mb-4">
+                    <!-- PAREJA A -->
+                    <div>
+                        <span class="label-mini block mb-2">Pareja A - Jugador 1</span>
+                        <input type="text" id="p1-name" class="input-cyber" placeholder="Daniel">
+                    </div>
+                    <div>
+                        <span class="label-mini block mb-2">Pareja A - Jugador 2</span>
+                        <input type="text" id="p2-name" class="input-cyber" placeholder="Fernando (Opcional)">
+                    </div>
+                    <!-- PAREJA B -->
+                    <div class="mt-2">
+                        <span class="label-mini block mb-2">Pareja B - Jugador 1</span>
+                        <input type="text" id="p3-name" class="input-cyber" placeholder="Paula">
+                    </div>
+                    <div class="mt-2">
+                        <span class="label-mini block mb-2">Pareja B - Jugador 2</span>
+                        <input type="text" id="p4-name" class="input-cyber" placeholder="Andres (Opcional)">
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-4 mb-6">
+                    <div>
+                        <span class="label-mini block mb-2">Resultado (Sets)</span>
+                        <input type="text" id="match-score" class="input-cyber" placeholder="6-4, 6-2">
+                    </div>
+                    <div>
+                        <span class="label-mini block mb-2">Pareja Ganadora</span>
+                        <select id="winner-team" class="input-cyber">
+                            <option value="A">Pareja A</option>
+                            <option value="B">Pareja B</option>
+                        </select>
+                    </div>
+                </div>
+                <button onclick="transmitirMarcador()" class="btn-cyber w-full">Transmitir al Ranking 📡</button>
+            </div>
+        </div>
+
+        <!-- ⚙️ PANEL 3: CONFIGURACIÓN AUTOGESTIONABLE DEL CLUB -->
+        <div class="glass-panel h-fit">
+            <h2 class="text-xl font-bold sport-font mb-6 text-brand"><i class="fa-solid fa-sliders"></i> Personalizar Club</h2>
+            <div class="flex flex-col gap-4">
+                <div>
+                    <span class="label-mini block mb-2">Nombre del Club</span>
+                    <input type="text" id="club-name" class="input-cyber" value="{{ club.name }}">
+                </div>
+                <div>
+                    <span class="label-mini block mb-2">Color Primario (Hexadecimal)</span>
+                    <input type="text" id="club-color" class="input-cyber" value="{{ settings.primary_color | default('#00f2ff') }}">
+                </div>
+                <div>
+                    <span class="label-mini block mb-2">URL del Logo</span>
+                    <input type="text" id="club-logo" class="input-cyber" value="{{ settings.logo_url | default('/static/logo_pasto.jpg') }}">
+                </div>
+                <button onclick="guardarConfiguracion()" class="btn-cyber w-full mt-4">Guardar Cambios 💾</button>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        const clubId = "{{ club.id }}";
+
+        async function aprobarSocio(jugadorId, aprobar) {
+            const res = await fetch(`/api/admin/approve/${jugadorId}`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ aprobado: aprobar })
+            });
+            const data = await res.json();
+            if (data.status === 'success') {
+                alert(data.mensaje);
+                location.reload();
+            } else {
+                alert("Error: " + data.mensaje);
+            }
+        }
+
+        async function transmitirMarcador() {
+            const payload = {
+                p1: document.getElementById('p1-name').value,
+                p2: document.getElementById('p2-name').value,
+                p3: document.getElementById('p3-name').value,
+                p4: document.getElementById('p4-name').value,
+                score: document.getElementById('match-score').value,
+                ganador: document.getElementById('winner-team').value,
+                club_id: clubId
+            };
+
+            const res = await fetch('/api/admin/match/finish', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(payload)
+            });
+
+            const data = await res.json();
+            if (data.status === 'success') {
+                alert("¡Marcador transmitido de forma exitosa al Muro de la Fama!");
+                location.reload();
+            } else {
+                alert("Error: " + data.mensaje);
+            }
+        }
+
+        async function guardarConfiguracion() {
+            const payload = {
+                name: document.getElementById('club-name').value,
+                primary_color: document.getElementById('club-color').value,
+                logo_url: document.getElementById('club-logo').value
+            };
+
+            const res = await fetch(`/api/admin/club/update/${clubId}`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(payload)
+            });
+
+            const data = await res.json();
+            if (data.status === 'success') {
+                alert("Configuración del club guardada con éxito.");
+                location.reload();
+            } else {
+                alert("Error: " + data.mensaje);
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,8 +1,9 @@
 from sqlalchemy.orm import Session
-from sqlalchemy import or_, func
-from models import Player, Match, WhatsAppUser
-from datetime import datetime
+from sqlalchemy import or_, func, and_
+from models import Player, Match, Club
+from datetime import datetime, timedelta # ✅ Añadido timedelta para el cálculo de turnos
 import unicodedata
+import pytz # ✅ Indispensable para la expansión global
 
 class BookingAgent:
     def __init__(self, db: Session):
@@ -10,127 +11,194 @@ class BookingAgent:
 
     def _normalizar(self, texto):
         if not texto: return ""
-        # Quita tildes, espacios extra y lo pasa a minúsculas
         texto = ''.join(c for c in unicodedata.normalize('NFD', texto) if unicodedata.category(c) != 'Mn')
         return texto.lower().strip()
 
     def _buscar_jugador_inteligente(self, nombre_buscado, jugadores_club):
-        """
-        Lógica de 'Gafas Inteligentes': 
-        Busca coincidencias parciales si no encuentra una exacta.
-        """
         target = self._normalizar(nombre_buscado)
-        
-        # 🎨 LOG DE BÚSQUEDA - Azul para el pensamiento
-        print(f"\033[1;94m🔍 [PENSAMIENTO/BOOKING] -> Buscando a: '{nombre_buscado}'\033[0m")
-
-        # 1. Intentar coincidencia exacta primero
+        print(f"\033[1;94m🔍 [BOOKING/DETECTIVE] -> Rastreando a: '{nombre_buscado}'\033[0m")
         for p in jugadores_club:
-            if self._normalizar(p.name) == target:
-                print(f"\033[1;92m✅ [ÉXITO] -> Coincidencia exacta encontrada: {p.name}\033[0m")
-                return p
-        
-        # 2. Intentar coincidencia parcial (Si 'Daniel' está dentro de 'Daniel CEO')
+            if self._normalizar(p.name) == target: return p
         for p in jugadores_club:
             nombre_real = self._normalizar(p.name)
-            if target in nombre_real or nombre_real in target:
-                print(f"\033[1;92m✅ [ÉXITO] -> Coincidencia parcial detectada: '{nombre_buscado}' parece ser '{p.name}'\033[0m")
-                return p
-        
-        print(f"\033[1;91m❌ [ERROR] -> No se encontró a nadie que se parezca a '{nombre_buscado}'\033[0m")
+            if target in nombre_real or nombre_real in target: return p
         return None
 
+    # --- 🛡️ LOGICA PARA EL CHAT ---
     def agendar_reto(self, retador_nombre, rival_nombre, fecha_iso, club_id):
-        """
-        Inicia la negociación de un reto con búsqueda inteligente de guerreros.
-        """
-        # 1. [OBSERVAR] - Traer a todos los jugadores del club para comparar
         jugadores = self.db.query(Player).filter_by(club_id=club_id).all()
-        
-        # 2. Buscar al Retador y al Rival con nuestras nuevas gafas
         p1 = self._buscar_jugador_inteligente(retador_nombre, jugadores)
         p2 = self._buscar_jugador_inteligente(rival_nombre, jugadores)
+        if not p1 or not p2:
+            return {"status": "error", "reply": "Identidad no localizada en la Arena."}
+        return self.lanzar_desafio_tactico(p1.id, p2.id, fecha_iso, club_id)
+
+    # --- 🚀 METODO: TAP-TO-DUEL DE PADEL ---
+    def lanzar_desafio_tactico(self, retador_id, rival_id, fecha_iso, club_id, court_number=None):
+        """
+        Misión: Registro de duelo directo en Padel.
+        """
+        # 1. Obtener Club y su Zona Horaria
+        club = self.db.query(Club).filter_by(id=club_id).first()
+        tz_name = club.settings.get("timezone", "America/Bogota") if club.settings else "America/Bogota"
+        tz = pytz.timezone(tz_name)
+        ahora_local = datetime.now(tz)
+
+        # 2. Verificar Identidades
+        p1 = self.db.query(Player).filter_by(id=retador_id).first()
+        p2 = self.db.query(Player).filter_by(id=rival_id).first()
 
         if not p1 or not p2:
-            nombre_fallido = rival_nombre if p1 else retador_nombre
-            return {
-                "status": "error", 
-                "reply": f"❌ Lo siento, no encuentro a ningún jugador llamado '{nombre_fallido}' en el ranking. ¿Te aseguraste de escribir bien su nombre?"
-            }
-
-        # 🛡️ REGLA DE ORO: Validar que no se rete a sí mismo (Evita el error Daniel vs Daniel)
+            return {"status": "error", "reply": "Sistemas de identidad desincronizados."}
         if p1.id == p2.id:
-            print(f"\033[1;31m🚫 [BOOKING/BLOQUEO] -> Intento de auto-reto detectado para: {p1.name}\033[0m")
-            return {
-                "status": "error",
-                "reply": f"¡Oye {p1.name}! 😂 No puedes retarte a ti mismo. Busca a otro guerrero en el Muro de la Fama para demostrar tu nivel."
-            }
+            return {"status": "error", "reply": "Un guerrero no puede desafiarse a sí mismo."}
 
-        # 3. [INTERPRETAR] - Validar Fecha
+        # 3. Coordenada Temporal
         fecha_obj = None
-        if fecha_iso:
-            try: 
-                # Intentamos limpiar la ISO si viene con milisegundos o cosas raras de la IA
+        try:
+            if fecha_iso:
                 if "Z" in fecha_iso: fecha_iso = fecha_iso.replace("Z", "")
-                fecha_obj = datetime.fromisoformat(fecha_iso)
-            except Exception as e:
-                print(f"⚠️ Error fecha: {e}")
-        
-        if not fecha_obj:
-            return {"status": "error", "reply": "📅 Necesito que me digas el día y la hora exacta para reservar la cancha."}
+                fecha_naive = datetime.fromisoformat(fecha_iso)
+                fecha_obj = tz.localize(fecha_naive)
+            else:
+                fecha_obj = ahora_local
+        except:
+            return {"status": "error", "reply": "Coordenada temporal inválida."}
 
-        # 4. [RAZONAR] - Validación de Canchas (Capacidad: 2)
-        partidos_misma_hora = self.db.query(Match).filter(
-            Match.scheduled_time == fecha_obj,
-            Match.is_finished == False
-        ).count()
-
-        if partidos_misma_hora >= 2:
-            return {
-                "status": "warning", 
-                "reply": f"🚫 Las 2 canchas están ocupadas el {fecha_obj.strftime('%d/%m a las %I:%M %p')}. ¿Te sirve otra hora?"
-            }
-
-        # 5. [VERIFICAR] - ¿Ya existe este duelo pendiente?
-        duelo_previo = self.db.query(Match).filter(
+        # 4. Regla de Oro: Exclusividad de Combate
+        guerreros_ocupados = self.db.query(Match).filter(
+            Match.club_id == club_id,
+            Match.is_finished == False,
             or_(
-                (Match.player_1_id == p1.id) & (Match.player_2_id == p2.id),
-                (Match.player_1_id == p2.id) & (Match.player_2_id == p1.id)
-            ),
-            Match.is_finished == False
+                Match.player_1_id == p1.id, 
+                Match.player_2_id == p1.id,
+                Match.player_3_id == p1.id,
+                Match.player_4_id == p1.id,
+                Match.player_1_id == p2.id,
+                Match.player_2_id == p2.id,
+                Match.player_3_id == p2.id,
+                Match.player_4_id == p2.id
+            )
         ).first()
 
-        if duelo_previo:
-            return {"status": "warning", "reply": f"⚠️ Ya existe un duelo pendiente entre ustedes. ¡Jueguen ese primero!"}
+        if guerreros_ocupados:
+            # Determinamos quién está ocupado para avisar de forma educada
+            envolucrado = p1.name if (
+                guerreros_ocupados.player_1_id == p1.id or 
+                guerreros_ocupados.player_2_id == p1.id or
+                guerreros_ocupados.player_3_id == p1.id or
+                guerreros_ocupados.player_4_id == p1.id
+            ) else p2.name
+            return {
+                "status": "warning", 
+                "reply": f"⚠️ Bloqueo de Arena: {envolucrado} ya tiene un duelo activo pendiente."
+            }
 
-        # 6. [EJECUTAR] - Crear el partido en estado "PROPOSED"
+        # 5. Crear el registro del duelo en la BD
+        # Como en Padel se juega de a 2, asignamos al Retador como Player 1 y al Retado como Player 3 (Rival 1)
+        # Los slots de parejas (Player 2 y Player 4) quedan listos por si agregan compañeros luego.
         nuevo_match = Match(
             player_1_id=p1.id, 
-            player_2_id=p2.id, 
+            player_2_id=p1.id, # Daniel juega individual o se duplica para mantener la integridad por ahora
+            player_3_id=p2.id,
+            player_4_id=p2.id,
+            club_id=club_id,
             score="VS", 
-            status="proposed", 
             is_finished=False, 
-            scheduled_time=fecha_obj,
-            stake=10.0 
+            scheduled_time=fecha_obj
         )
         
         try:
             self.db.add(nuevo_match)
             self.db.commit()
             self.db.refresh(nuevo_match)
-            print(f"\033[1;32m🎾 [BOOKING] Reto propuesto ID {nuevo_match.id}: {p1.name} vs {p2.name}\033[0m")
+            print(f"\033[1;32m⚔️ [TOH ARENA] Duelo registrado: {p1.name} vs {p2.name}\033[0m")
+            
+            return {
+                "status": "challenge_proposed", 
+                "match_id": nuevo_match.id,
+                "retador": p1.name,
+                "rival": p2.name,
+                "reply": f"¡Guante lanzado! 🚀 Desafío registrado contra {p2.name}."
+            }
         except Exception as e:
             self.db.rollback()
-            print(f"❌ Error DB: {e}")
-            return {"status": "error", "reply": "Tuve un problema al guardar el reto en la base de datos."}
+            print(f"❌ Error DB Booking: {e}")
+            return {"status": "error", "reply": "Fallo en la persistencia del duelo."}
 
-        # Retornamos datos para el Handshake Proactivo
+    # ============================================================
+    # 📊 GENERADOR DE GRID (MULTICANCHA)
+    # ============================================================
+    def obtener_grid_disponibilidad(self, club_id, fecha_str):
+        club = self.db.query(Club).filter_by(id=club_id).first()
+        if not club: return {"status": "error", "reply": "Club no encontrado."}
+
+        settings = club.settings or {}
+        booking_config = settings.get("booking", {})
+        
+        courts_count = booking_config.get("courts_count", 6)
+        open_time = booking_config.get("open_time", 6)
+        close_time = booking_config.get("close_time", 22)
+        slot_minutes = booking_config.get("slot_minutes", 90) # Padel suele ser de 90 min
+        
+        tz_name = settings.get("timezone", "America/Bogota")
+        tz = pytz.timezone(tz_name)
+
+        try:
+            fecha_base = datetime.strptime(fecha_str, "%Y-%m-%d")
+        except:
+            fecha_base = datetime.now(tz).replace(hour=0, minute=0, second=0, microsecond=0)
+
+        inicio_dia = tz.localize(fecha_base.replace(hour=0, minute=0, second=0))
+        fin_dia = tz.localize(fecha_base.replace(hour=23, minute=59, second=59))
+
+        partidos_del_dia = self.db.query(Match).filter(
+            Match.club_id == club_id,
+            Match.scheduled_time >= inicio_dia,
+            Match.scheduled_time <= fin_dia,
+            Match.is_finished == False
+        ).all()
+
+        grid = []
+        hora_actual = fecha_base.replace(hour=open_time, minute=0, second=0)
+        hora_cierre = fecha_base.replace(hour=close_time, minute=0, second=0)
+
+        while hora_actual < hora_cierre:
+            hora_str = hora_actual.strftime("%H:%M")
+            hora_iso = tz.localize(hora_actual).isoformat()
+            
+            fila = {
+                "hora": hora_str,
+                "hora_iso": hora_iso,
+                "canchas":[]
+            }
+
+            for cancha_idx in range(1, courts_count + 1):
+                # Filtro de partidos para la cancha
+                match_en_cancha = next((m for m in partidos_del_dia if m.player_1_id and m.scheduled_time.hour == hora_actual.hour and m.scheduled_time.minute == hora_actual.minute), None)
+                
+                if match_en_cancha:
+                    p1_name = match_en_cancha.player_1.name.split(' ')[0] if match_en_cancha.player_1 else "N/A"
+                    p3_name = match_en_cancha.p3.name.split(' ')[0] if match_en_cancha.p3 else "N/A"
+                    
+                    fila["canchas"].append({
+                        "numero": cancha_idx,
+                        "estado": "ocupada",
+                        "label": f"{p1_name} vs {p3_name}"
+                    })
+                else:
+                    fila["canchas"].append({
+                        "numero": cancha_idx,
+                        "estado": "libre",
+                        "label": "LIBRE"
+                    })
+
+            grid.append(fila)
+            hora_actual += timedelta(minutes=slot_minutes)
+
         return {
-            "status": "challenge_proposed", 
-            "match_id": nuevo_match.id,
-            "retador": p1.name,
-            "rival": p2.name,
-            "telefono_rival": p2.owner.phone_number if p2.owner else None,
-            "fecha_humana": fecha_obj.strftime("%d/%m %I:%M %p"),
-            "reply": f"¡Reto enviado! 🚀 He contactado a {p2.name} para confirmar el duelo del {fecha_obj.strftime('%d/%m %I:%M %p')}. Te avisaré cuando acepte."
+            "status": "success",
+            "fecha": fecha_base.strftime("%Y-%m-%d"),
+            "canchas_totales": courts_count,
+            "grid": grid
         }

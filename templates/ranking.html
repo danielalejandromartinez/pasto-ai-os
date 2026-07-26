@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>THE ARENA 2030 | Pasto.AI OS</title>
+    <title>TOH | Muro de la Fama</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
@@ -11,199 +11,117 @@
 
         :root {
             --brand-color: {{ sponsor.color if sponsor.activo else '#00f2ff' }};
-            --gold-color: #ffcc00;
             --glass-bg: rgba(255, 255, 255, 0.015);
             --glass-border: rgba(255, 255, 255, 0.07);
         }
 
         body { 
-            font-family: 'Inter', sans-serif; 
-            background-color: #000; 
-            color: white;
-            background-image: 
-                radial-gradient(circle at 50% -20%, var(--brand-color) 0%, transparent 40%),
-                radial-gradient(circle at 100% 100%, rgba(255, 255, 255, 0.02) 0%, transparent 20%);
-            background-attachment: fixed;
-            overflow-x: hidden;
+            font-family: 'Inter', sans-serif; background-color: #000; color: white;
+            background-image: radial-gradient(circle at 50% -20%, var(--brand-color) 0%, transparent 40%);
+            background-attachment: fixed; overflow-x: hidden;
         }
 
         .sport-font { font-family: 'Rajdhani', sans-serif; text-transform: uppercase; letter-spacing: 2px; }
         .digital-font { font-family: 'Orbitron', sans-serif; }
 
-        .cyber-header-title {
-            font-size: clamp(2.5rem, 12vw, 7rem);
-            font-weight: 900;
-            background: linear-gradient(to bottom, #fff 50%, rgba(255,255,255,0.1) 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            filter: drop-shadow(0 0 20px rgba(255,255,255,0.05));
-        }
-
-        @keyframes fadeInUp {
-            from { opacity: 0; transform: translateY(30px); filter: blur(10px); }
-            to { opacity: 1; transform: translateY(0); filter: blur(0); }
-        }
-        .reveal { animation: fadeInUp 0.8s cubic-bezier(0.2, 1, 0.3, 1) forwards; }
-
-        .match-card { 
-            background: var(--glass-bg); 
-            border: 1px solid var(--glass-border); 
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            transition: 0.5s ease;
-        }
-        .match-confirmed { border-color: var(--brand-color); box-shadow: 0 0 30px rgba(0, 242, 255, 0.05); }
-        .match-proposed { border-color: rgba(255, 255, 255, 0.1); border-style: dashed; }
+        /* --- AURAS DE PRESTIGIO --- */
+        .rank-bronce { border-color: rgba(205, 127, 50, 0.3) !important; }
+        .rank-plata { border-color: rgba(192, 192, 192, 0.3) !important; }
+        .rank-oro { border-color: rgba(255, 215, 0, 0.3) !important; }
+        .rank-leyenda { border-color: var(--brand-color) !important; box-shadow: 0 0 30px rgba(0, 242, 255, 0.2); }
 
         .player-card-container {
-            background: var(--glass-bg);
-            backdrop-filter: blur(30px);
-            -webkit-backdrop-filter: blur(30px);
-            border: 1px solid var(--glass-border);
-            border-radius: 28px;
+            background: var(--glass-bg); backdrop-filter: blur(30px);
+            border: 1px solid var(--glass-border); border-radius: 28px;
             transition: 0.7s cubic-bezier(0.19, 1, 0.22, 1);
         }
-        .player-card-container:hover { 
-            border-color: var(--brand-color); 
-            transform: translateY(-12px) scale(1.01);
-            background: rgba(255,255,255,0.03);
+        .player-card-container:hover { transform: translateY(-12px) scale(1.02); background: rgba(255,255,255,0.03); }
+
+        /* --- PANELES TÁCTICOS (DRAWERS) --- */
+        #registration-drawer, #tactical-dossier, #booking-drawer {
+            position: fixed; bottom: -100%; left: 0; width: 100%; height: 90vh;
+            background: rgba(5, 5, 5, 0.98); border-top: 2px solid var(--brand-color);
+            border-radius: 40px 40px 0 0; z-index: 2000; transition: 0.6s cubic-bezier(0.165, 0.84, 0.44, 1);
+            padding: 40px; box-shadow: 0 -20px 100px rgba(0,0,0,1);
+        }
+        .drawer-open { bottom: 0 !important; transform: translateY(0) !important; }
+
+        .input-cyber {
+            width: 100%; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1);
+            padding: 20px; border-radius: 20px; color: white; font-family: 'Orbitron';
+            font-size: 14px; outline: none; margin-bottom: 20px;
         }
 
-        .alive-photo { 
-            filter: grayscale(100%) brightness(0.8); 
-            transition: 1.2s cubic-bezier(0.19, 1, 0.22, 1); 
+        .btn-challenge {
+            width: 100%; padding: 22px; background: var(--brand-color); color: #000;
+            font-family: 'Orbitron'; font-weight: 900; font-size: 13px; border-radius: 20px;
+            text-transform: uppercase; letter-spacing: 4px; transition: 0.3s; cursor: pointer;
         }
-        .player-card-container:hover .alive-photo { 
-            filter: grayscale(0%) brightness(1); 
-            transform: scale(1.08); 
-        }
+        .btn-challenge:disabled { opacity: 0.5; cursor: not-allowed; }
 
-        .card-hud-overlay {
-            background: linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.2) 50%, transparent 100%);
-        }
-
-        .cat-tab {
-            padding: 10px 28px; font-family: 'Orbitron'; font-size: 10px; color: #555;
-            border-radius: 100px; border: 1px solid transparent; transition: 0.5s;
-            letter-spacing: 3px;
-        }
-        .cat-tab.active { 
-            color: var(--brand-color); background: rgba(0, 242, 255, 0.03); 
-            border-color: rgba(0, 242, 255, 0.2); text-shadow: 0 0 15px var(--brand-color); 
-        }
-
-        /* --- 🆕 ESTILOS DEL EXPEDIENTE TÁCTICO (MODAL) --- */
-        #tactical-dossier {
-            position: fixed; inset: 0; z-index: 100;
-            display: none; align-items: center; justify-content: center;
-            background: rgba(0,0,0,0.85); backdrop-blur: 10px;
-            padding: 20px;
-        }
-        .dossier-window {
-            width: 100%; max-width: 600px; height: 85vh;
-            background: rgba(15, 15, 15, 0.95);
-            border: 1px solid var(--glass-border);
-            border-radius: 32px;
-            overflow-y: auto;
-            position: relative;
-            box-shadow: 0 0 100px rgba(0,0,0,1);
-        }
-        .dossier-header { padding: 40px 40px 20px 40px; border-bottom: 1px solid rgba(255,255,255,0.05); }
-        .dossier-body { padding: 0 40px 40px 40px; }
-        .battle-row { 
-            padding: 15px; border-radius: 12px; background: rgba(255,255,255,0.02);
-            border: 1px solid rgba(255,255,255,0.03); margin-bottom: 8px;
-            display: flex; justify-content: space-between; align-items: center;
-        }
-        .win-tag { color: var(--brand-color); font-weight: bold; font-size: 10px; border: 1px solid var(--brand-color); padding: 2px 8px; border-radius: 4px; }
-        .lose-tag { color: #ff4444; font-weight: bold; font-size: 10px; border: 1px solid #ff4444; padding: 2px 8px; border-radius: 4px; }
-
-        @media (max-width: 640px) {
-            .player-card-container { height: 480px; }
-            .dossier-window { height: 95vh; border-radius: 0; }
+        #global-overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(10px);
+            z-index: 1900; display: none;
         }
     </style>
 </head>
 <body class="min-h-screen pb-40">
 
+    <!-- INPUT INVISIBLE DE SELECCIÓN DE FOTO -->
+    <input type="file" id="pwa-photo-input" class="hidden" accept="image/*" onchange="subirFotoPerfil(this)">
+
     <!-- NAV -->
     <nav class="fixed top-0 w-full z-50 px-6 md:px-12 h-24 flex items-center justify-between backdrop-blur-md border-b border-white/5">
         <div class="flex items-center gap-6">
-            <div class="h-10 w-16 md:h-12 md:w-20 rounded-lg overflow-hidden bg-black border border-white/10 shadow-2xl">
+            <div class="h-10 w-16 rounded-lg overflow-hidden bg-black border border-white/10 shadow-2xl">
                 <video autoplay loop muted playsinline class="w-full h-full object-cover opacity-60">
                     <source src="/static/logo_pasto.mp4" type="video/mp4">
                 </video>
             </div>
             <div class="flex flex-col">
-                <span class="font-bold text-lg md:text-xl sport-font text-white/80">THE ARENA</span>
-                <span class="text-[8px] md:text-[9px] text-brand digital-font tracking-[0.4em] uppercase">Multi-Agent OS</span>
+                <span class="font-bold text-lg md:text-xl sport-font text-white/80">TOH ARENA</span>
+                <span id="user-identity-tag" class="text-[8px] text-brand digital-font tracking-widest uppercase">Pasto.AI Engine</span>
             </div>
         </div>
-        <div class="hidden sm:block text-[9px] digital-font text-white/20 tracking-widest">SERVER_TIME: <span id="real-time" class="text-white/40">--:--</span></div>
+        <div class="flex gap-2">
+            <button onclick="toggleBooking(true)" class="bg-white/10 border border-white/20 text-white px-4 py-2 rounded-full text-[10px] digital-font hover:bg-white hover:text-black transition-all">RESERVAR</button>
+            <button id="nav-action-btn" onclick="openRegistration()" class="bg-brand/10 border border-brand/40 text-brand px-6 py-2 rounded-full text-[10px] digital-font hover:bg-brand hover:text-black transition-all">SYNC...</button>
+        </div>
     </nav>
 
-    <!-- HEADER -->
-    <div class="pt-48 pb-16 text-center px-6 reveal">
-        <h1 class="cyber-header-title sport-font">MURO DE LA FAMA</h1>
-        <div class="flex items-center justify-center gap-6 mt-[-10px] mb-16 opacity-30">
-            <div class="h-px w-20 bg-white"></div>
-            <p class="text-[10px] digital-font tracking-[0.8em] uppercase font-light">Ecosistema de Prestigio</p>
-            <div class="h-px w-20 bg-white"></div>
-        </div>
-        
-        <div class="flex flex-wrap justify-center gap-3 max-w-4xl mx-auto">
-            <button class="cat-tab active" onclick="filterCategory('TODOS', this)">ALL_UNITS</button>
-            {% for cat in categorias %}
-                <button class="cat-tab" onclick="filterCategory('{{ cat.name }}', this)">{{ cat.name }}</button>
-            {% endfor %}
-        </div>
+    <div class="pt-48 pb-8 text-center px-6">
+        <h1 class="text-6xl md:text-8xl font-black sport-font mb-4">MURO DE LA FAMA</h1>
+    </div>
+
+    <!-- 🎛️ FILTRO DE CATEGORÍAS -->
+    <div class="max-w-[1700px] mx-auto px-6 md:px-12 mb-12 flex flex-wrap gap-3 justify-center">
+        {% for cat in categorias %}
+        <button onclick="filtrarCategoria('{{ cat.name }}')" class="category-btn bg-white/5 border border-white/10 text-white/60 hover:text-brand hover:border-brand px-6 py-3 rounded-full text-xs digital-font transition-all uppercase tracking-widest">
+            {{ cat.name }}
+        </button>
+        {% endfor %}
     </div>
 
     <div class="max-w-[1700px] mx-auto px-6 md:px-12">
-
-        <!-- 🎾 RADAR DINÁMICO -->
         {% if retos %}
-        <div class="mb-32 reveal" style="animation-delay: 0.2s;">
-            <div class="flex items-center gap-4 mb-12 opacity-40">
-                <h2 class="text-[10px] digital-font tracking-[0.6em]">LIVE_DUELS_MONITOR</h2>
-                <div class="h-px flex-1 bg-gradient-to-r from-white/10 to-transparent"></div>
-            </div>
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <div class="mb-20">
+            <h2 class="text-[10px] digital-font tracking-[0.6em] mb-8 opacity-40 uppercase">Live_Duels_Monitor</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {% for reto in retos %}
-                <div class="match-card rounded-3xl p-10 flex flex-col items-center group {{ 'match-confirmed' if reto.status == 'scheduled' else 'match-proposed' }}"
-                     {% if reto.status == 'scheduled' %} onclick="window.location.href='/tablero?matchId={{ reto.id }}&p1={{ reto.player_1.name }}&p2={{ reto.player_2.name }}'" {% endif %}>
+                <div class="relative p-8 rounded-3xl border border-white/5 bg-white/5 flex flex-col items-center group overflow-hidden">
+                    <!-- Si el usuario actual es el rival retado (Mapy Martínez ID 3), le habilitamos el handshake -->
+                    <span id="badge-status-{{ reto.id }}" class="relative z-10 text-[8px] digital-font mb-4 uppercase tracking-widest animate-pulse text-yellow-500">RETO PROPUESTO</span>
                     
-                    <div class="mb-8">
-                        {% if reto.status == 'scheduled' %}
-                            <span class="digital-font text-[9px] text-brand border border-brand/40 bg-brand/5 px-4 py-1.5 rounded-full animate-pulse tracking-[0.3em]">CONFIRMADO</span>
-                        {% else %}
-                            <span class="digital-font text-[9px] text-yellow-500/60 border border-yellow-500/20 px-4 py-1.5 rounded-full tracking-[0.3em]">EN_ESPERA</span>
-                        {% endif %}
+                    <div class="relative z-10 flex justify-between w-full items-center mb-6">
+                        <span class="sport-font text-xl">{{ reto.player_1.name.split(' ')[0] if reto.player_1 else 'Daniel' }}</span>
+                        <span class="text-xs opacity-20 italic font-black">VS</span>
+                        <span class="sport-font text-xl">{{ reto.p3.name.split(' ')[0] if reto.p3 else 'Mapy' }}</span>
                     </div>
 
-                    <div class="flex justify-between items-center w-full">
-                        <div class="text-center w-5/12">
-                            <div class="text-2xl md:text-3xl font-bold text-white sport-font tracking-tighter">{{ reto.player_1.name.split(' ')[0] }}</div>
-                            <div class="text-[8px] text-white/20 digital-font mt-2 tracking-widest">ALFA_UNIT</div>
-                        </div>
-                        <div class="w-2/12 flex justify-center">
-                            <span class="text-4xl font-black text-white/5 sport-font italic group-hover:text-brand/20 transition-all duration-700">VS</span>
-                        </div>
-                        <div class="text-center w-5/12">
-                            <div class="text-2xl md:text-3xl font-bold text-white sport-font tracking-tighter">{{ reto.player_2.name.split(' ')[0] }}</div>
-                            <div class="text-[8px] text-white/20 digital-font mt-2 tracking-widest">BETA_UNIT</div>
-                        </div>
-                    </div>
-
-                    <div class="mt-10 pt-8 border-t border-white/5 w-full flex justify-around">
-                        <div class="text-center">
-                            <p class="text-[8px] text-white/20 digital-font mb-2 tracking-widest">CALENDAR_DATA</p>
-                            <p class="text-xs digital-font text-white/70">{{ reto.scheduled_time.strftime('%a %d %b') if reto.scheduled_time else 'TBD' }}</p>
-                        </div>
-                        <div class="text-center">
-                            <p class="text-[8px] text-white/20 digital-font mb-2 tracking-widest">SYNC_TIME</p>
-                            <p class="text-sm digital-font text-brand font-black">{{ reto.scheduled_time.strftime('%I:%M %p') if reto.scheduled_time else 'TBD' }}</p>
-                        </div>
+                    <!-- 🤝 BOTONES DE ACCIÓN PARA EL RIVAL RETADO -->
+                    <div id="handshake-actions-{{ reto.id }}" class="relative z-10 w-full flex gap-3">
+                        <button onclick="aceptarDuelo({{ reto.id }}, {{ reto.p3_id }})" class="flex-1 py-3 bg-green-500/20 text-green-400 border border-green-500/30 rounded-xl text-[10px] digital-font hover:bg-green-500 hover:text-black font-bold uppercase transition-all">Aceptar 🎾</button>
+                        <button onclick="alert('Funcionalidad de reprogramación en desarrollo para el Día 3.')" class="flex-1 py-3 bg-red-500/10 text-red-400 border border-red-500/20 rounded-xl text-[10px] digital-font hover:bg-red-500 hover:text-black font-bold uppercase transition-all">Posponer ⏰</button>
                     </div>
                 </div>
                 {% endfor %}
@@ -211,180 +129,299 @@
         </div>
         {% endif %}
 
-        <!-- ✅ EL MURO (CON CLIC PARA EXPEDIENTE) -->
-        <div id="player-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6 md:gap-8 reveal" style="animation-delay: 0.4s;">
+        <!-- 🎴 GRID DE GUERREROS -->
+        <div id="player-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-8">
             {% for jugador in jugadores %}
-            <div class="player-card-container relative h-[550px] overflow-hidden group cursor-pointer" 
-                 data-categorias="{{ jugador.categorias | join(' ') }}"
-                 onclick="openDossier({{ jugador.id }})">
-                
+            <div class="player-card-container relative h-[550px] overflow-hidden group cursor-pointer rank-{{ jugador.rank | lower }}" data-category="{{ jugador.categorias[0] }}" onclick="openDossier({{ jugador.id }})">
                 <div class="absolute top-6 right-6 z-20 bg-black/60 backdrop-blur-xl px-4 py-2 rounded-xl border border-white/5 flex flex-col items-end">
                     <span class="text-[7px] text-white/30 font-bold uppercase tracking-widest">Monthly_XP</span>
-                    <span class="text-brand font-black digital-font text-sm">{{ jugador.monthly_points if jugador.monthly_points else 0 }}</span>
+                    <span class="text-brand font-black digital-font text-sm">{{ jugador.monthly_points }}</span>
                 </div>
-
-                {% if jugador.avatar_url %}
-                    <img src="{{ jugador.avatar_url }}?v={{ range(1, 999) | random }}" 
-                         class="absolute inset-0 w-full h-full object-cover alive-photo">
-                {% else %}
-                    <div class="absolute inset-0 bg-zinc-900 flex items-center justify-center">
-                        <span class="text-9xl font-black text-white/5 sport-font">{{ jugador.name[:1] }}</span>
-                    </div>
-                {% endif %}
-                
-                <div class="absolute inset-0 card-hud-overlay flex flex-col justify-end p-8 z-10">
-                    <div class="flex justify-between items-end mb-6">
-                        <div class="flex flex-col">
-                            <span class="text-6xl font-black text-white/10 sport-font index-number italic">#{{ loop.index }}</span>
-                            <div class="flex gap-1.5 mt-2">
-                                {% for i in range(jugador.stars) %}
-                                    <i class="fa-solid fa-star text-brand text-[8px] drop-shadow-[0_0_10px_var(--brand-color)]"></i>
-                                {% endfor %}
-                            </div>
+                {% if jugador.avatar_url %}<img src="{{ jugador.avatar_url }}?v={{ range(1, 999) | random }}" class="absolute inset-0 w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-700">
+                {% else %}<div class="absolute inset-0 bg-zinc-900 flex items-center justify-center opacity-20"><i class="fa-solid fa-user-shield text-6xl"></i></div>{% endif %}
+                <div class="absolute inset-0 flex flex-col justify-end p-8 z-10 bg-gradient-to-t from-black via-black/40 to-transparent">
+                    <span class="text-6xl font-black text-white/10 sport-font italic mb-4">#{{ loop.index }}</span>
+                    <div class="flex justify-between items-end mb-4 w-full">
+                        <div class="text-left">
+                            <span class="text-[7px] text-white/40 digital-font tracking-widest uppercase">Categoría</span>
+                            <span class="block text-sm font-bold text-white digital-font">{{ jugador.categorias[0] }}</span>
                         </div>
                         <div class="text-right">
-                            <span class="text-[7px] text-white/40 digital-font tracking-widest">SEASON_POINTS</span>
-                            <span class="block text-5xl font-black text-brand digital-font leading-none">{{ jugador.season_points }}</span>
+                            <span class="text-[9px] digital-font text-white/50 uppercase">{{ jugador.rank }}</span>
+                            <span class="block text-2xl font-black text-brand digital-font leading-none">{{ jugador.eternal_points | int }} XP</span>
                         </div>
                     </div>
-
-                    <div class="pt-6 border-t border-white/10">
-                        <h3 class="text-2xl md:text-3xl font-bold text-white sport-font leading-tight mb-2 truncate">{{ jugador.name }}</h3>
-                        <div class="flex justify-between items-center bg-white/5 px-4 py-2.5 rounded-xl border border-white/5">
-                            <span class="text-[8px] text-white/30 digital-font tracking-widest uppercase">{{ jugador.rank }}</span>
-                            <span class="text-xs font-bold text-white digital-font">{{ jugador.eternal_points | int }} XP</span>
-                        </div>
-                    </div>
+                    <h3 class="text-3xl font-bold sport-font mb-2 truncate">{{ jugador.name }}</h3>
                 </div>
-                <div class="absolute inset-0 border-2 border-brand/0 group-hover:border-brand/20 transition-all rounded-3xl duration-1000"></div>
             </div>
             {% endfor %}
         </div>
     </div>
 
-    <!-- 🛡️ PIEZA MAESTRA: VENTANA DEL EXPEDIENTE TÁCTICO -->
-    <div id="tactical-dossier" onclick="closeDossier()">
-        <div class="dossier-window" onclick="event.stopPropagation()">
-            <div class="dossier-header relative">
-                <button onclick="closeDossier()" class="absolute top-6 right-10 text-white/30 hover:text-white transition-colors text-2xl">×</button>
-                <p class="text-brand digital-font text-[9px] tracking-[0.5em] mb-4">CLASSIFIED_RECORD_2030</p>
-                <h2 id="dos-name" class="text-5xl font-black sport-font mb-2">LOADING...</h2>
-                <span id="dos-rank" class="bg-brand/10 text-brand border border-brand/20 px-4 py-1 rounded-full text-[10px] digital-font">RANK_TBD</span>
-            </div>
-            
-            <div class="dossier-body">
-                <!-- Estadísticas Globales -->
-                <div class="grid grid-cols-3 gap-4 mb-12">
-                    <div class="text-center p-6 rounded-2xl bg-white/5 border border-white/5">
-                        <p class="text-[8px] text-white/20 digital-font mb-2">TOTAL_MATCHES</p>
-                        <p id="dos-total" class="text-3xl font-black digital-font">--</p>
-                    </div>
-                    <div class="text-center p-6 rounded-2xl bg-white/5 border border-white/5">
-                        <p class="text-[8px] text-white/20 digital-font mb-2 text-brand">VICTORIES</p>
-                        <p id="dos-wins" class="text-3xl font-black digital-font text-brand">--</p>
-                    </div>
-                    <div class="text-center p-6 rounded-2xl bg-white/5 border border-white/5">
-                        <p class="text-[8px] text-white/20 digital-font mb-2 text-red-500">DEFEATS</p>
-                        <p id="dos-losses" class="text-3xl font-black digital-font text-red-500">--</p>
-                    </div>
-                </div>
+    <div id="global-overlay" onclick="closeAllDrawers()"></div>
 
-                <!-- Últimas Batallas -->
-                <h3 class="text-[10px] digital-font tracking-[0.3em] mb-6 opacity-40">RECENT_ENGAGEMENTS</h3>
-                <div id="dos-recent-list">
-                    <!-- Dinámico -->
-                </div>
+    <!-- 🛡️ FORMULARIO DE ALISTAMIENTO ACTUALIZADO (PWA REGISTER) -->
+    <div id="registration-drawer">
+        <div class="max-w-md mx-auto h-full flex flex-col">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-4xl font-black sport-font">ALISTAMIENTO</h2>
+                <button onclick="closeAllDrawers()" class="text-white/20 hover:text-white text-3xl">&times;</button>
             </div>
+            <input type="text" id="reg-nombre" class="input-cyber" placeholder="NOMBRE COMPLETO">
+            <input type="tel" id="reg-tel" class="input-cyber" placeholder="TELEFONO WHATSAPP">
+            
+            <span class="text-[9px] digital-font text-brand uppercase mb-2 block tracking-widest">Elige tu Categoría Única</span>
+            <select id="reg-categoria" class="input-cyber mb-6" style="background: rgba(0,0,0,0.5); padding: 18px;">
+                {% for cat in categorias %}
+                <option value="{{ cat.name }}">{{ cat.name }}</option>
+                {% endfor %}
+            </select>
+            
+            <button id="btn-submit-reg" onclick="enviarRegistro()" class="btn-challenge">SOLICITAR ACCESO ⚔️</button>
         </div>
     </div>
 
-    <!-- SPONSOR -->
-    {% if sponsor.activo %}
-    <a href="https://wa.me/{{ sponsor.whatsapp }}?text={{ sponsor.mensaje }}" target="_blank" class="fixed bottom-8 left-1/2 -translate-x-1/2 sm:left-auto sm:right-10 sm:translate-x-0 flex items-center gap-5 bg-white/5 backdrop-blur-3xl text-white px-8 py-5 rounded-full border border-white/10 hover:border-brand/50 hover:scale-105 transition-all z-50 shadow-2xl">
-        <div class="h-8 w-8 rounded-full overflow-hidden bg-white/10 p-1.5 flex items-center justify-center border border-white/10">
-            <img src="{{ sponsor.logo }}" class="w-full h-auto object-contain" alt="Sponsor">
+    <div id="tactical-dossier">
+        <div class="max-w-md mx-auto flex flex-col h-full">
+            <div class="flex justify-between items-center mb-6">
+                <h2 id="dos-name" class="text-4xl font-black sport-font text-brand">---</h2>
+                <button onclick="closeAllDrawers()" class="text-white/20 hover:text-white text-3xl">&times;</button>
+            </div>
+            <button id="btn-duel-action" onclick="lanzarDuelo()" class="btn-challenge">LANZAR DESAFÍO DIRECTO</button>
         </div>
-        <div class="flex flex-col items-start border-l border-white/10 pl-5">
-            <span class="text-[8px] digital-font text-white/30 uppercase tracking-[0.3em]">Membership_Access</span>
-            <span class="text-xs font-bold sport-font text-brand tracking-widest">{{ sponsor.cta }} <i class="fa-solid fa-arrow-right ml-3"></i></span>
-        </div>
-    </a>
-    {% endif %}
+    </div>
 
     <script>
-        const clubId = "{{ club_id }}"; 
+        const clubId = "{{ club_id }}";
         const socket = new WebSocket(`${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws/${clubId}`);
-        socket.onmessage = function(e) { 
-            if (e.data === "update") { 
-                document.body.style.opacity = "0.4"; 
-                setTimeout(() => location.reload(), 200); 
-            } 
-        };
+        socket.onmessage = (e) => { if (e.data === "update") location.reload(); };
 
-        setInterval(() => {
-            const now = new Date();
-            document.getElementById('real-time').innerText = now.toLocaleTimeString('es-CO', {hour: '2-digit', minute:'2-digit', second:'2-digit'});
-        }, 1000);
+        // --- 🔍 LÓGICA DE FILTRADO POR CATEGORÍAS ---
+        function filtrarCategoria(nombreCategoria) {
+            document.querySelectorAll('.category-btn').forEach(btn => {
+                btn.style.borderColor = 'rgba(255,255,255,0.1)';
+                btn.style.color = 'rgba(255,255,255,0.6)';
+                btn.style.boxShadow = 'none';
+            });
 
-        function filterCategory(catName, btn) {
-            document.querySelectorAll('.cat-tab').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            const cards = document.querySelectorAll('.player-card-container');
-            let visibleIndex = 1;
-            cards.forEach(card => {
-                const cardCats = card.getAttribute('data-categorias');
-                if (catName === 'TODOS' || cardCats.includes(catName)) {
+            const btnActivo = Array.from(document.querySelectorAll('.category-btn')).find(b => b.innerText.trim() === nombreCategoria.toUpperCase());
+            if (btnActivo) {
+                btnActivo.style.borderColor = 'var(--brand-color)';
+                btnActivo.style.color = 'var(--brand-color)';
+                btnActivo.style.boxShadow = '0 0 15px rgba(0, 242, 255, 0.2)';
+            }
+
+            document.querySelectorAll('.player-card-container').forEach(card => {
+                const catCard = card.getAttribute('data-category');
+                if (catCard === nombreCategoria) {
                     card.style.display = 'block';
-                    card.querySelector('.index-number').innerText = `#${visibleIndex++}`;
                 } else {
                     card.style.display = 'none';
                 }
             });
         }
 
-        // 🛡️ LÓGICA DE CONTROL DEL EXPEDIENTE TÁCTICO
-        async function openDossier(id) {
-            const modal = document.getElementById('tactical-dossier');
-            modal.style.display = 'flex';
-            
-            try {
-                const response = await fetch(`/api/player/${id}/stats`);
-                const data = await response.json();
-                
-                if (data.status === 'success') {
-                    document.getElementById('dos-name').innerText = data.perfil.nombre;
-                    document.getElementById('dos-rank').innerText = data.perfil.rango;
-                    document.getElementById('dos-total').innerText = data.perfil.total;
-                    document.getElementById('dos-wins').innerText = data.perfil.wins;
-                    document.getElementById('dos-losses').innerText = data.perfil.losses;
-                    
-                    const recentList = document.getElementById('dos-recent-list');
-                    recentList.innerHTML = '';
-                    
-                    data.recientes.forEach(match => {
-                        const row = document.createElement('div');
-                        row.className = 'battle-row';
-                        const tag = match.yo_gane ? '<span class="win-tag">VICTORY</span>' : '<span class="lose-tag">DEFEAT</span>';
-                        row.innerHTML = `
-                            <div>
-                                <p class="text-xs sport-font">vs ${match.rival}</p>
-                                <p class="text-[8px] text-white/20 digital-font">${match.fecha}</p>
-                            </div>
-                            <div class="text-right">
-                                <p class="text-xs digital-font mb-1">${match.resultado}</p>
-                                ${tag}
-                            </div>
-                        `;
-                        recentList.appendChild(row);
-                    });
-                }
-            } catch (e) {
-                console.error("Error cargando expediente.");
+        window.onload = () => {
+            const primerBoton = document.querySelector('.category-btn');
+            if (primerBoton) {
+                filtrarCategoria(primerBoton.innerText.trim());
+            }
+        };
+
+        // --- 📊 MOTOR DEL REGISTRO PWA TOH ---
+        function openRegistration() {
+            document.getElementById('registration-drawer').classList.add('drawer-open');
+            document.getElementById('global-overlay').style.display = 'block';
+        }
+
+        async function enviarRegistro() {
+            const nombre = document.getElementById('reg-nombre').value;
+            const telefono = document.getElementById('reg-tel').value;
+            const categoria = document.getElementById('reg-categoria').value;
+
+            if (!nombre || !telefono) {
+                alert("Por favor completa los campos obligatorios.");
+                return;
+            }
+
+            const res = await fetch('/api/player/register/request', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    nombre: nombre,
+                    telefono: telefono,
+                    categoria: categoria,
+                    club_id: clubId
+                })
+            });
+
+            const data = await res.json();
+            if (data.status === 'success') {
+                alert("¡Solicitud enviada! 🚀 El director de Pasto Padel Club verificará tu nivel. Te notificaremos una vez habilitado.");
+                closeAllDrawers();
+            } else {
+                alert("Error: " + data.mensaje);
             }
         }
 
-        function closeDossier() {
-            document.getElementById('tactical-dossier').style.display = 'none';
+        // --- 📊 MOTOR DEL DOSSIER TÁCTICO (FLUX TOH) ---
+        let rivalSeleccionadoId = null;
+
+        async function openDossier(playerId) {
+            rivalSeleccionadoId = playerId;
+            const dossier = document.getElementById('tactical-dossier');
+            const overlay = document.getElementById('global-overlay');
+
+            const miIdLocal = parseInt(localStorage.getItem('pasto_player_id')) || 4;
+
+            const res = await fetch(`/api/player/${playerId}/stats`);
+            const data = await res.json();
+
+            if (data.status === 'success') {
+                document.getElementById('dos-name').innerText = data.perfil.nombre;
+                
+                let infoBox = document.getElementById('dos-info-box');
+                if (!infoBox) {
+                    infoBox = document.getElementById('dos-info-box') || document.createElement('div');
+                    infoBox.id = 'dos-info-box';
+                    infoBox.className = 'my-6 p-6 rounded-2xl bg-white/5 border border-white/10 flex flex-col gap-3';
+                    dossier.querySelector('.flex-col').insertBefore(infoBox, document.getElementById('btn-duel-action'));
+                }
+                
+                infoBox.innerHTML = `
+                    <div class="flex justify-between">
+                        <span class="text-white/40 font-bold uppercase text-[10px]">Rango Prestigio</span>
+                        <span class="text-brand font-black digital-font text-sm">${data.perfil.rango}</span>
+                    </div>
+                    <div class="flex justify-between border-t border-white/5 pt-3">
+                        <span class="text-white/40 font-bold uppercase text-[10px]">Victorias</span>
+                        <span class="text-green-500 font-bold digital-font">${data.perfil.wins}</span>
+                    </div>
+                    <div class="flex justify-between border-t border-white/5 pt-3">
+                        <span class="text-white/40 font-bold uppercase text-[10px]">Derrotas</span>
+                        <span class="text-red-500 font-bold digital-font">${data.perfil.losses}</span>
+                    </div>
+                `;
+
+                const btnAccion = document.getElementById('btn-duel-action');
+                if (playerId === miIdLocal) {
+                    btnAccion.innerText = "SUBIR MI FOTO / SELFIE 📸";
+                    btnAccion.style.borderColor = "#ffcc00"; 
+                    btnAccion.style.color = "#ffcc00";
+                    btnAccion.onclick = abrirSelectorFoto;
+                } else {
+                    btnAccion.innerText = "LANZAR DESAFÍO DIRECTO";
+                    btnAccion.style.borderColor = "var(--brand-color)";
+                    btnAccion.style.color = "#000";
+                    btnAccion.onclick = lanzarDuelo;
+                }
+
+                dossier.classList.add('drawer-open');
+                overlay.style.display = 'block';
+            } else {
+                alert("Error al sincronizar el expediente táctico.");
+            }
+        }
+
+        // --- 📸 FUNCIONES DE CARGA DE IMAGEN (SELFIE ONBOARDING) ---
+        function abrirSelectorFoto() {
+            document.getElementById('pwa-photo-input').click();
+        }
+
+        async function subirFotoPerfil(input) {
+            if (!input.files || input.files.length === 0) return;
+            
+            const file = input.files[0];
+            const formData = new FormData();
+            
+            const miIdLocal = parseInt(localStorage.getItem('pasto_player_id')) || 4;
+            formData.append("player_id", miIdLocal);
+            formData.append("foto", file);
+
+            const res = await fetch('/api/player/upload-photo', {
+                method: 'POST',
+                body: formData
+            });
+
+            const data = await res.json();
+            if (data.status === 'success') {
+                alert("¡Felicidades! Tu selfie ha sido activada en el Muro de la Fama.");
+                closeAllDrawers();
+                location.reload();
+            } else {
+                alert("Error: " + data.mensaje);
+            }
+        }
+
+        // --- 🤝 FUNCIÓN DE CONFIRMACIÓN DE RETOS (HANDSHAKE) ---
+        async function aceptarDuelo(matchId, p3Id) {
+            const miIdLocal = parseInt(localStorage.getItem('pasto_player_id')) || 4;
+
+            // 🛡️ REGLA DE SEGURIDAD: Solo la persona que fue retada (p3) puede aceptar el partido
+            if (miIdLocal !== p3Id) {
+                alert("Solo el rival retado puede confirmar esta batalla en la Arena.");
+                return;
+            }
+
+            if (!confirm("¿Aceptas este desafío de Padel?")) return;
+
+            const res = await fetch(`/api/challenge/accept/${matchId}`, {
+                method: 'POST'
+            });
+
+            const data = await res.json();
+            if (data.status === 'success') {
+                alert(data.mensaje);
+                
+                // Cambiamos el aviso arriba para reflejar que está listo para jugar
+                const badge = document.getElementById(`badge-status-${matchId}`);
+                if (badge) {
+                    badge.innerText = "DUELO CONFIRMADO";
+                    badge.style.color = "#00ff88"; // Color verde neón
+                }
+                
+                // Ocultamos los botones de aceptación
+                const actions = document.getElementById(`handshake-actions-${matchId}`);
+                if (actions) actions.style.display = 'none';
+            } else {
+                alert("Error: " + data.mensaje);
+            }
+        }
+
+        function closeAllDrawers() {
+            document.getElementById('tactical-dossier').classList.remove('drawer-open');
+            document.getElementById('registration-drawer').classList.remove('drawer-open');
+            document.getElementById('global-overlay').style.display = 'none';
+        }
+
+        async function lanzarDuelo() {
+            const challengerId = parseInt(localStorage.getItem('pasto_player_id')) || 4;
+            
+            if (challengerId === rivalSeleccionadoId) {
+                alert("Un guerrero no puede desafiarse a sí mismo en la Arena.");
+                return;
+            }
+
+            if (!confirm("¿Deseas lanzar un guante de desafío directo a este rival?")) return;
+
+            const res = await fetch('/api/challenge/create', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    challenger_id: challengerId,
+                    opponent_id: rivalSeleccionadoId,
+                    club_id: clubId
+                })
+            });
+
+            const data = await res.json();
+            if (data.status === 'success') {
+                alert(data.mensaje);
+                closeAllDrawers();
+                location.reload();
+            } else {
+                alert("Error: " + data.mensaje);
+            }
         }
     </script>
 </body>

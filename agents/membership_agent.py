@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
 from sqlalchemy.orm.attributes import flag_modified
-from models import Player, WhatsAppUser, Category
+from models import Player, WhatsAppUser, Category, WhiteList # ✅ Añadido WhiteList
 import unicodedata
 import os
 from openai import OpenAI
@@ -19,7 +19,6 @@ class MembershipAgent:
     def auditar_selfie(self, ruta_archivo):
         """
         AUDITORÍA IA VISION: Determina si la foto es apta para la Arena.
-        Blindado contra variaciones de la IA (tildes/puntos).
         """
         print(f"\033[95m[AUDITORÍA/VISIÓN] -> Analizando calidad de la selfie...\033[0m")
         base64_image = media_service.codificar_imagen(ruta_archivo)
@@ -44,38 +43,48 @@ class MembershipAgent:
             
             respuesta_raw = response.choices[0].message.content
             veredicto_limpio = self._normalizar(respuesta_raw)
-            
-            print(f"\033[95m[AUDITORÍA/VISIÓN] -> Respuesta IA: '{respuesta_raw}' | Procesado: '{veredicto_limpio}'\033[0m")
             return "si" in veredicto_limpio
-
         except Exception as e:
             print(f"❌ Error auditando selfie: {e}")
-            return True # En caso de error, priorizamos la experiencia del usuario
+            return True # Priorizamos experiencia de usuario en caso de caída de API
 
     def registrar_jugador(self, nombre, telefono, club_id):
         """
-        REGISTRO DE SOCIO FUNDADOR: Activa la Beca de Innovación Pasto.AI.
-        Detecta categorías disponibles para personalizar la bienvenida.
+        REGISTRO DE SOCIO: Compatible con WhatsApp y PWA 2050.
         """
+        # 1. Verificar si ya es un usuario de WhatsApp conocido
         usuario_db = self.db.query(WhatsAppUser).filter_by(phone_number=telefono).first()
         
+        # 🛡️ REGLA DE ORO: Si no existe, lo creamos pero verificando la WhiteList
         if not usuario_db:
+            print(f"🔍 [MEMBERSHIP] Nuevo usuario detectado. Sincronizando con WhiteList...")
+            invitado_vip = self.db.query(WhiteList).filter_by(phone_number=telefono).first()
+            
+            # Si está en WhiteList, usamos el nombre oficial para mantener el estatus
+            nombre_final = invitado_vip.full_name if invitado_vip else nombre
+            
             usuario_db = WhatsAppUser(phone_number=telefono, memory={"step": "waiting_selfie"})
-            self.db.add(usuario_db); self.db.commit(); self.db.refresh(usuario_db)
+            self.db.add(usuario_db)
+            self.db.commit()
+            self.db.refresh(usuario_db)
+        else:
+            nombre_final = nombre
 
+        # 2. Evitar duplicidad de jugadores para el mismo usuario
         if usuario_db.players:
+            print(f"⚠️ [MEMBERSHIP] El usuario {telefono} ya tiene un perfil activo.")
             return {"status": "already_registered", "jugador": usuario_db.players[0]}
 
-        # Consultamos las ligas/categorías que el Admin configuró para este club
+        # 3. Consultar ligas para personalizar bienvenida
         categorias_club = self.db.query(Category).filter_by(club_id=club_id).all()
         txt_categorias = ""
         if categorias_club:
             nombres = [c.name for c in categorias_club]
-            txt_categorias = f"\n\nContamos con las siguientes ligas activas: *{', '.join(nombres)}*."
+            txt_categorias = f"\n\nLigas activas: *{', '.join(nombres)}*."
 
-        # Crear Jugador con Estatus de Fundador
+        # 4. Crear el Guerrero con Estatus Inicial
         nuevo_jugador = Player(
-            name=nombre, 
+            name=nombre_final, 
             category="General", 
             club_id=club_id if club_id else 1, 
             owner_id=usuario_db.id, 
@@ -92,76 +101,61 @@ class MembershipAgent:
             self.db.add(nuevo_jugador)
             self.db.commit()
             
-            print(f"✅ [MEMBERSHIP] Socio {nombre} registrado como Fundador.")
+            print(f"✅ [MEMBERSHIP] Socio {nombre_final} registrado con éxito.")
             
             return {
                 "status": "welcome_new_socio", 
-                "reply": f"¡Es un privilegio recibirlo, {nombre}! 🏆\n\nUsted ha sido acreditado como **Socio Fundador** de la Arena. Por cortesía de **Pasto.AI**, su participación inicial es totalmente gratuita bajo nuestra Beca de Innovación.{txt_categorias}\n\n📸 **ACCIÓN REQUERIDA:** Para activar su tarjeta neón en el Muro de la Fama, envíeme una selfie ahora mismo. Este paso habilitará su acceso a los desafíos de gloria.",
+                "reply": f"¡Bienvenido a la Arena, {nombre_final}! 🏆{txt_categorias}",
                 "data": {"jugador_id": nuevo_jugador.id}
             }
         except Exception as e:
             self.db.rollback()
-            print(f"❌ Error en registro: {e}")
-            return {"status": "error", "reply": "Inconsistencia técnica en el registro de socio."}
+            print(f"❌ Error en registro DB: {e}")
+            return {"status": "error", "reply": "Error técnico en el registro."}
 
     def actualizar_foto(self, telefono_usuario, ruta_foto, es_demo=False):
         """
-        Audita la foto y decide si el socio está listo para elegir categoría o jugar.
-        🆕 MEJORA: Añadido parámetro es_demo para el Pase de Invitado.
+        Vincula la identidad visual del guerrero.
         """
         usuario = self.db.query(WhatsAppUser).filter_by(phone_number=telefono_usuario).first()
         
         if usuario and usuario.players:
             jugador = usuario.players[0]
             
-            # --- 🆕 LÓGICA DEL PASE DE INVITADO ---
-            if es_demo:
-                print(f"\033[1;33m🎟️ [PASE_VIP] -> Omitiendo auditoría visual para la Demo de {jugador.name}.\033[0m")
-                es_apta = True
-            else:
-                # Auditoría visual IA real
-                es_apta = self.auditar_selfie(ruta_foto)
-            # ---------------------------------------
-            
-            if not es_apta:
-                return {
-                    "status": "remind_selfie",
-                    "reply": f"Estimado {jugador.name}, para mantener el prestigio visual de la Arena, requiero un retrato claro de su rostro. La imagen enviada no parece ser un retrato apto. Por favor, intente de nuevo con una selfie profesional."
-                }
+            # Auditoría solo si no es una demo rápida (Ahorro de IA)
+            if not es_demo:
+                if not self.auditar_selfie(ruta_foto):
+                    return {"status": "remind_selfie", "reply": "Requiero un retrato claro de su rostro."}
 
-            ruta_web = ruta_foto.replace("\\", "/")
-            if not ruta_web.startswith("/"): ruta_web = "/" + ruta_web
+            # Normalización de ruta para la web
+            ruta_web = "/" + ruta_foto.replace("\\", "/").lstrip("/")
             
             try:
                 jugador.avatar_url = ruta_web
                 
-                # Revisamos si el club tiene categorías para ver si lo mandamos a elegir o a jugar
+                # Decidir siguiente paso según configuración del club
                 categorias_club = self.db.query(Category).filter_by(club_id=jugador.club_id).all()
                 
                 if len(categorias_club) > 1:
                     usuario.memory["step"] = "waiting_category"
-                    msg_exito = f"¡Excelente, Miembro Fundador {jugador.name}! 📸 Identidad verificada. Su tarjeta ya brilla en la web.\n\nPara finalizar, ¿en cuál de nuestras ligas desea competir? (Opciones: {', '.join([c.name for c in categorias_club])})"
+                    msg = "Identidad verificada. ¿En qué liga deseas competir?"
                 else:
                     usuario.memory["step"] = "ready_to_play"
-                    msg_exito = f"¡Excelente, Miembro Fundador {jugador.name}! 📸 Identidad verificada. Su tarjeta ya brilla en el Muro de la Fama.\n\nLa Arena es suya. ¿A quién desea desafiar hoy?"
+                    msg = "Identidad verificada. ¡La Arena es tuya!"
                 
                 flag_modified(usuario, "memory")
                 self.db.commit()
                 
-                return {
-                    "status": "onboarding_complete",
-                    "reply": msg_exito,
-                    "club_id": jugador.club_id
-                }
+                return {"status": "onboarding_complete", "reply": msg, "club_id": jugador.club_id}
             except Exception as e:
                 self.db.rollback()
-                return {"status": "error", "reply": "Error al sincronizar su identidad visual."}
+                return {"status": "error", "reply": "Error al sincronizar foto."}
         
         return {"status": "error", "reply": "Identidad no localizada."}
 
     def vincular_categoria(self, telefono_usuario, nombre_categoria):
         """
-        MUEVE AL JUGADOR A UNA LIGA ESPECÍFICA (Escalabilidad Global).
+        MUEVE AL JUGADOR A UNA LIGA ESPECÍFICA.
         """
         usuario = self.db.query(WhatsAppUser).filter_by(phone_number=telefono_usuario).first()
         if not usuario or not usuario.players:
@@ -169,32 +163,21 @@ class MembershipAgent:
         
         jugador = usuario.players[0]
         cat_norm = self._normalizar(nombre_categoria)
-        
-        # Buscamos la categoría en el club
         todas_cats = self.db.query(Category).filter_by(club_id=jugador.club_id).all()
+        
         categoria_encontrada = next((c for c in todas_cats if self._normalizar(c.name) == cat_norm), None)
 
         if not categoria_encontrada:
-            nombres = ", ".join([c.name for c in todas_cats])
-            return {"status": "error", "reply": f"Lo siento, la categoría '{nombre_categoria}' no existe. Elija una de estas: {nombres}"}
+            return {"status": "error", "reply": "La categoría no existe."}
 
         try:
-            # Añadimos la categoría a la lista del jugador (Many-to-Many)
-            if categoria_encontrada not in jugador.categories:
-                jugador.categories.append(categoria_encontrada)
+            if categoria_encontrada not in jugador.player_categories_list:
+                jugador.player_categories_list.append(categoria_encontrada)
             
             usuario.memory["step"] = "ready_to_play"
             flag_modified(usuario, "memory")
             self.db.commit()
-            
-            print(f"📦 [MEMBERSHIP] {jugador.name} vinculado a liga: {categoria_encontrada.name}")
-            
-            return {
-                "status": "category_assigned",
-                "reply": f"¡Perfecto! Ha sido asignado a la liga **{categoria_encontrada.name}**. Ya puede visualizar su posición en el ranking de su categoría. ¡A jugar!",
-                "categoria_nombre": categoria_encontrada.name
-            }
+            return {"status": "category_assigned", "reply": f"Asignado a la liga {categoria_encontrada.name}."}
         except Exception as e:
             self.db.rollback()
-            print(f"❌ Error vinculando categoría: {e}")
-            return {"status": "error", "reply": "Problema técnico al asignar su liga."}
+            return {"status": "error", "reply": "Error técnico al asignar liga."}
