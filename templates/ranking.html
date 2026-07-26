@@ -80,12 +80,12 @@
             </div>
             <div class="flex flex-col">
                 <span class="font-bold text-lg md:text-xl sport-font text-white/80">TOH ARENA</span>
-                <span id="user-identity-tag" class="text-[8px] text-brand digital-font tracking-widest uppercase">Pasto.AI Engine</span>
+                <span id="user-identity-tag" class="text-[8px] text-brand digital-font tracking-widest uppercase">Initializing...</span>
             </div>
         </div>
         <div class="flex gap-2">
             <button onclick="toggleBooking(true)" class="bg-white/10 border border-white/20 text-white px-4 py-2 rounded-full text-[10px] digital-font hover:bg-white hover:text-black transition-all">RESERVAR</button>
-            <button id="nav-action-btn" onclick="openRegistration()" class="bg-brand/10 border border-brand/40 text-brand px-6 py-2 rounded-full text-[10px] digital-font hover:bg-brand hover:text-black transition-all">SYNC...</button>
+            <button id="nav-action-btn" onclick="openRegistration()" class="bg-brand/10 border border-brand/40 text-brand px-6 py-2 rounded-full text-[10px] digital-font hover:bg-brand hover:text-black transition-all">INGRESAR</button>
         </div>
     </nav>
 
@@ -158,25 +158,37 @@
 
     <div id="global-overlay" onclick="closeAllDrawers()"></div>
 
-    <!-- 🛡️ FORMULARIO DE ALISTAMIENTO CON NOMBRE DE USUARIO Y PIN DE 4 DÍGITOS -->
+    <!-- 🛡️ LOBBY DE IDENTIDAD TOH (LOGIN / REGISTRO DUAL) -->
     <div id="registration-drawer">
         <div class="max-w-md mx-auto h-full flex flex-col">
-            <div class="flex justify-between items-center mb-6">
-                <h2 class="text-4xl font-black sport-font">ALISTAMIENTO</h2>
-                <button onclick="closeAllDrawers()" class="text-white/20 hover:text-white text-3xl">&times;</button>
+            <!-- PESTAÑAS DE NEÓN -->
+            <div class="flex gap-6 border-b border-white/10 pb-4 mb-6">
+                <button id="tab-login" onclick="switchIdentityTab('login')" class="text-2xl font-black sport-font text-brand border-b-2 border-brand pb-2">INGRESAR</button>
+                <button id="tab-register" onclick="switchIdentityTab('register')" class="text-2xl font-black sport-font text-white/30 hover:text-white pb-2">ALISTARSE</button>
             </div>
-            <input type="text" id="reg-nombre" class="input-cyber" placeholder="NOMBRE COMPLETO">
-            <input type="text" id="reg-username" class="input-cyber" placeholder="NOMBRE DE USUARIO (Ej: daniel10)">
-            <input type="password" id="reg-pin" class="input-cyber" placeholder="PIN DE SEGURIDAD (4 NÚMEROS)" maxlength="4" inputmode="numeric">
-            
-            <span class="text-[9px] digital-font text-brand uppercase mb-2 block tracking-widest">Elige tu Categoría Única</span>
-            <select id="reg-categoria" class="input-cyber mb-6" style="background: rgba(0,0,0,0.5); padding: 18px;">
-                {% for cat in categorias %}
-                <option value="{{ cat.name }}">{{ cat.name }}</option>
-                {% endfor %}
-            </select>
-            
-            <button id="btn-submit-reg" onclick="enviarRegistro()" class="btn-challenge">SOLICITAR ACCESO ⚔️</button>
+
+            <!-- FORMULARIO 1: LOGIN (INGRESAR) -->
+            <div id="form-login" class="flex flex-col flex-1">
+                <input type="text" id="login-username" class="input-cyber" placeholder="NOMBRE DE USUARIO (Ej: daniel10)">
+                <input type="password" id="login-pin" class="input-cyber mb-8" placeholder="PIN DE 4 NÚMEROS" maxlength="4" inputmode="numeric">
+                <button onclick="ejecutarLogin()" class="btn-challenge">INGRESAR A LA ARENA ⚔️</button>
+            </div>
+
+            <!-- FORMULARIO 2: REGISTRO (ALISTARSE) -->
+            <div id="form-register" class="flex flex-col flex-1 hidden">
+                <input type="text" id="reg-nombre" class="input-cyber" placeholder="NOMBRE COMPLETO">
+                <input type="text" id="reg-username" class="input-cyber" placeholder="NOMBRE DE USUARIO (Ej: daniel10)">
+                <input type="password" id="reg-pin" class="input-cyber" placeholder="PIN DE SEGURIDAD (4 NÚMEROS)" maxlength="4" inputmode="numeric">
+                
+                <span class="text-[9px] digital-font text-brand uppercase mb-2 block tracking-widest">Elige tu Categoría Única</span>
+                <select id="reg-categoria" class="input-cyber mb-6" style="background: rgba(0,0,0,0.5); padding: 18px;">
+                    {% for cat in categorias %}
+                    <option value="{{ cat.name }}">{{ cat.name }}</option>
+                    {% endfor %}
+                </select>
+                
+                <button id="btn-submit-reg" onclick="enviarRegistro()" class="btn-challenge">SOLICITAR ACCESO ⚔️</button>
+            </div>
         </div>
     </div>
 
@@ -220,17 +232,98 @@
             });
         }
 
+        // --- 🛡️ CONTROL DE SESIÓN DINÁMICA (UX) ---
+        function verificarSesion() {
+            const pName = localStorage.getItem('pasto_player_name');
+            const pCat = localStorage.getItem('pasto_player_category');
+            
+            const identityTag = document.getElementById('user-identity-tag');
+            const navBtn = document.getElementById('nav-action-btn');
+
+            if (pName) {
+                // Si el jugador ya inició sesión, actualizamos la interfaz con estilo
+                identityTag.innerText = `${pName.toUpperCase()} - ${pCat.toUpperCase()}`;
+                navBtn.innerText = "CERRAR SESIÓN 🚪";
+                navBtn.className = "bg-red-500/10 border border-red-500/30 text-red-400 px-6 py-2 rounded-full text-[10px] digital-font hover:bg-red-500 hover:text-black transition-all";
+                navBtn.onclick = cerrarSesion;
+            } else {
+                // Si no hay sesión, dejamos el botón de Ingresar
+                identityTag.innerText = "TOH Padel Club";
+                navBtn.innerText = "INGRESAR";
+                navBtn.className = "bg-brand/10 border border-brand/40 text-brand px-6 py-2 rounded-full text-[10px] digital-font hover:bg-brand hover:text-black transition-all";
+                navBtn.onclick = openRegistration;
+            }
+        }
+
+        // Auto-ejecutar la verificación de sesión en cuanto cargue la PWA
         window.onload = () => {
+            verificarSesion();
             const primerBoton = document.querySelector('.category-btn');
             if (primerBoton) {
                 filtrarCategoria(primerBoton.innerText.trim());
             }
         };
 
-        // --- 📊 MOTOR DEL REGISTRO PWA TOH ---
+        // --- 📊 MOTOR DEL LOBBY DUAL (LOGIN / REGISTRO) ---
         function openRegistration() {
             document.getElementById('registration-drawer').classList.add('drawer-open');
             document.getElementById('global-overlay').style.display = 'block';
+        }
+
+        function switchIdentityTab(tab) {
+            const tabLogin = document.getElementById('tab-login');
+            const tabReg = document.getElementById('tab-register');
+            const formLogin = document.getElementById('form-login');
+            const formReg = document.getElementById('form-register');
+
+            if (tab === 'login') {
+                tabLogin.className = "text-2xl font-black sport-font text-brand border-b-2 border-brand pb-2";
+                tabReg.className = "text-2xl font-black sport-font text-white/30 hover:text-white pb-2";
+                formLogin.classList.remove('hidden');
+                formReg.classList.add('hidden');
+            } else {
+                tabReg.className = "text-2xl font-black sport-font text-brand border-b-2 border-brand pb-2";
+                tabLogin.className = "text-2xl font-black sport-font text-white/30 hover:text-white pb-2";
+                formReg.classList.remove('hidden');
+                formLogin.classList.add('hidden');
+            }
+        }
+
+        async function ejecutarLogin() {
+            const username = document.getElementById('login-username').value;
+            const pin = document.getElementById('login-pin').value;
+
+            if (!username || !pin) {
+                alert("Por favor completa los campos.");
+                return;
+            }
+
+            const res = await fetch('/api/player/login', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ username: username, pin: pin })
+            });
+
+            const data = await res.json();
+            if (data.status === 'success') {
+                alert(data.mensaje);
+                // Guardamos los datos de la sesión del jugador en la PWA
+                localStorage.setItem('pasto_player_id', data.player_id);
+                localStorage.setItem('pasto_player_name', data.nombre);
+                localStorage.setItem('pasto_player_category', data.categoria);
+                
+                closeAllDrawers();
+                verificarSesion(); // Actualizamos el Nav al instante sin refrescar la página
+                location.reload(); // Recargamos para que el Muro filtre la tarjeta del jugador
+            } else {
+                alert(data.mensaje);
+            }
+        }
+
+        function cerrarSesion() {
+            if (!confirm("¿Deseas cerrar sesión o cambiar de jugador?")) return;
+            localStorage.clear(); // Limpiamos la memoria del celular
+            location.reload(); // Recargamos para que el Nav vuelva a pedir ingreso
         }
 
         async function enviarRegistro() {
@@ -264,10 +357,6 @@
             const data = await res.json();
             if (data.status === 'success') {
                 alert("¡Solicitud enviada! 🚀 El director de Pasto Padel Club verificará tu nivel. Te notificaremos una vez habilitado.");
-                
-                // Guardamos automáticamente el ID devuelto por el servidor para su memoria táctica
-                localStorage.setItem('pasto_player_id', data.player_id);
-                
                 closeAllDrawers();
             } else {
                 alert("Error: " + data.mensaje);
@@ -282,7 +371,8 @@
             const dossier = document.getElementById('tactical-dossier');
             const overlay = document.getElementById('global-overlay');
 
-            const miIdLocal = parseInt(localStorage.getItem('pasto_player_id')) || 4;
+            // Obtenemos el ID real del usuario que inició sesión
+            const miIdLocal = parseInt(localStorage.getItem('pasto_player_id')) || 0;
 
             const res = await fetch(`/api/player/${playerId}/stats`);
             const data = await res.json();
@@ -344,7 +434,7 @@
             const file = input.files[0];
             const formData = new FormData();
             
-            const miIdLocal = parseInt(localStorage.getItem('pasto_player_id')) || 4;
+            const miIdLocal = parseInt(localStorage.getItem('pasto_player_id')) || 0;
             formData.append("player_id", miIdLocal);
             formData.append("foto", file);
 
@@ -365,7 +455,7 @@
 
         // --- 🤝 FUNCIÓN DE CONFIRMACIÓN DE RETOS (HANDSHAKE) ---
         async function aceptarDuelo(matchId, p3Id) {
-            const miIdLocal = parseInt(localStorage.getItem('pasto_player_id')) || 4;
+            const miIdLocal = parseInt(localStorage.getItem('pasto_player_id')) || 0;
 
             if (miIdLocal !== p3Id) {
                 alert("Solo el rival retado puede confirmar esta batalla en la Arena.");
@@ -402,8 +492,14 @@
         }
 
         async function lanzarDuelo() {
-            const challengerId = parseInt(localStorage.getItem('pasto_player_id')) || 4;
+            const challengerId = parseInt(localStorage.getItem('pasto_player_id')) || 0;
             
+            if (challengerId === 0) {
+                alert("Por favor inicia sesión para poder retar en la Arena.");
+                openRegistration();
+                return;
+            }
+
             if (challengerId === rivalSeleccionadoId) {
                 alert("Un guerrero no puede desafiarse a sí mismo en la Arena.");
                 return;

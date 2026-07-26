@@ -124,6 +124,42 @@ async def solicitar_ingreso_toh(request: Request, db: Session = Depends(get_db))
         return {"status": "error", "mensaje": str(e)}
 
 # ============================================================
+# 🛡️ NUEVA API: VERIFICACIÓN DE INGRESO DESDE LA PWA (LOGIN TOH)
+# ============================================================
+@app.post("/api/player/login")
+async def verificar_ingreso_toh(request: Request, db: Session = Depends(get_db)):
+    try:
+        data = await request.json()
+        username = _norm(data.get("username"))
+        pin_code = data.get("pin")
+
+        # 1. Buscar al jugador en la base de datos por su usuario único
+        jugador = db.query(Player).filter(Player.username == username).first()
+        if not jugador:
+            return {"status": "error", "mensaje": "Nombre de usuario no localizado en la Arena."}
+
+        # 2. Verificar que el PIN de seguridad coincida
+        if jugador.pin_code != pin_code:
+            return {"status": "error", "mensaje": "PIN de seguridad incorrecto."}
+
+        # 3. Verificar que esté aprobado por el Administrador
+        if not jugador.is_approved:
+            return {"status": "pending", "mensaje": "Tu perfil está pendiente de aprobación por la administración del club."}
+
+        # 4. Obtener su categoría activa
+        categoria_nombre = jugador.player_categories_list[0].name if jugador.player_categories_list else "General"
+
+        return {
+            "status": "success",
+            "player_id": jugador.id,
+            "nombre": jugador.name,
+            "categoria": categoria_nombre,
+            "mensaje": f"¡Bienvenido de vuelta, {jugador.name}! ⚔️"
+        }
+    except Exception as e:
+        return {"status": "error", "mensaje": str(e)}
+
+# ============================================================
 # 🛡️ API: CARGA DE FOTO DE PERFIL DESDE LA PWA (SELFIE ONBOARDING)
 # ============================================================
 @app.post("/api/player/upload-photo")
