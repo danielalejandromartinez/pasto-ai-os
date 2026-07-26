@@ -109,7 +109,7 @@
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {% for reto in retos %}
                 <div class="relative p-8 rounded-3xl border border-white/5 bg-white/5 flex flex-col items-center group overflow-hidden">
-                    <span id="badge-status-{{ reto.id }}" class="relative z-10 text-[8px] digital-font mb-4 uppercase tracking-widest animate-pulse text-yellow-500">RETO PROPUESTO</span>
+                    <span id="badge-status-{{ reto.id }}" class="relative z-10 text-[8px] digital-font mb-4 uppercase tracking-widest {{ 'text-green-400' if reto.is_finished == False and reto.scheduled_time else 'text-yellow-500' }}">{{ 'DUELO CONFIRMADO' if reto.is_finished == False and reto.scheduled_time else 'RETO PROPUESTO' }}</span>
                     
                     <div class="relative z-10 flex justify-between w-full items-center mb-6">
                         <span class="sport-font text-xl">{{ reto.player_1.name.split(' ')[0] if reto.player_1 else 'Daniel' }}</span>
@@ -117,9 +117,17 @@
                         <span class="sport-font text-xl">{{ reto.p3.name.split(' ')[0] if reto.p3 else 'Mapy' }}</span>
                     </div>
 
-                    <div id="handshake-actions-{{ reto.id }}" class="relative z-10 w-full flex gap-3">
-                        <button onclick="aceptarDuelo({{ reto.id }}, {{ reto.p3_id }})" class="flex-1 py-3 bg-green-500/20 text-green-400 border border-green-500/30 rounded-xl text-[10px] digital-font hover:bg-green-500 hover:text-black font-bold uppercase transition-all">Aceptar 🎾</button>
-                        <button onclick="alert('Funcionalidad de reprogramación en desarrollo para el Día 3.')" class="flex-1 py-3 bg-red-500/10 text-red-400 border border-red-500/20 rounded-xl text-[10px] digital-font hover:bg-red-500 hover:text-black font-bold uppercase transition-all">Posponer ⏰</button>
+                    <!-- 🤝 BOTONES DE ACCIÓN PARA EL RIVAL RETADO -->
+                    <div id="handshake-actions-{{ reto.id }}" class="relative z-10 w-full flex gap-3" style="display: {{ 'none' if reto.scheduled_time else 'flex' }};">
+                        <!-- ✅ CORRECCIÓN DE COLUMNA DE BASE DE DATOS: player_3_id -->
+                        <button onclick="aceptarDuelo({{ reto.id }}, {{ reto.player_3_id }})" class="flex-1 py-3 bg-green-500/20 text-green-400 border border-green-500/30 rounded-xl text-[10px] digital-font hover:bg-green-500 hover:text-black font-bold uppercase transition-all">Aceptar 🎾</button>
+                        <button onclick="alert('Funcionalidad de reprogramación en desarrollo.')" class="flex-1 py-3 bg-red-500/10 text-red-400 border border-red-500/20 rounded-xl text-[10px] digital-font hover:bg-red-500 hover:text-black font-bold uppercase transition-all">Posponer ⏰</button>
+                    </div>
+                    
+                    <!-- BOTÓN IR AL TABLERO (Solo si el duelo ya está confirmado) -->
+                    <div id="go-board-{{ reto.id }}" class="relative z-10 w-full mt-2" style="display: {{ 'block' if reto.scheduled_time else 'none' }};">
+                        <!-- ✅ Sincronizado para Padel: player_1 vs p3 -->
+                        <button onclick="window.location.href='/tablero?matchId={{ reto.id }}&p1={{ reto.player_1.name if reto.player_1 else 'Daniel' }}&p2={{ reto.p3.name if reto.p3 else 'Mapy' }}'" class="w-full py-3 bg-brand text-black rounded-xl text-[10px] digital-font font-bold uppercase transition-all">Ir al Tablero ⚔️</button>
                     </div>
                 </div>
                 {% endfor %}
@@ -161,20 +169,17 @@
     <!-- 🛡️ LOBBY DE IDENTIDAD TOH (LOGIN / REGISTRO DUAL) -->
     <div id="registration-drawer">
         <div class="max-w-md mx-auto h-full flex flex-col">
-            <!-- PESTAÑAS DE NEÓN -->
             <div class="flex gap-6 border-b border-white/10 pb-4 mb-6">
                 <button id="tab-login" onclick="switchIdentityTab('login')" class="text-2xl font-black sport-font text-brand border-b-2 border-brand pb-2">INGRESAR</button>
                 <button id="tab-register" onclick="switchIdentityTab('register')" class="text-2xl font-black sport-font text-white/30 hover:text-white pb-2">ALISTARSE</button>
             </div>
 
-            <!-- FORMULARIO 1: LOGIN (INGRESAR) -->
             <div id="form-login" class="flex flex-col flex-1">
                 <input type="text" id="login-username" class="input-cyber" placeholder="NOMBRE DE USUARIO (Ej: daniel10)">
                 <input type="password" id="login-pin" class="input-cyber mb-8" placeholder="PIN DE 4 NÚMEROS" maxlength="4" inputmode="numeric">
                 <button onclick="ejecutarLogin()" class="btn-challenge">INGRESAR A LA ARENA ⚔️</button>
             </div>
 
-            <!-- FORMULARIO 2: REGISTRO (ALISTARSE) -->
             <div id="form-register" class="flex flex-col flex-1 hidden">
                 <input type="text" id="reg-nombre" class="input-cyber" placeholder="NOMBRE COMPLETO">
                 <input type="text" id="reg-username" class="input-cyber" placeholder="NOMBRE DE USUARIO (Ej: daniel10)">
@@ -207,7 +212,6 @@
         const socket = new WebSocket(`${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws/${clubId}`);
         socket.onmessage = (e) => { if (e.data === "update") location.reload(); };
 
-        // --- 🔍 LÓGICA DE FILTRADO POR CATEGORÍAS ---
         function filtrarCategoria(nombreCategoria) {
             document.querySelectorAll('.category-btn').forEach(btn => {
                 btn.style.borderColor = 'rgba(255,255,255,0.1)';
@@ -232,7 +236,6 @@
             });
         }
 
-        // --- 🛡️ CONTROL DE SESIÓN DINÁMICA (UX) ---
         function verificarSesion() {
             const pName = localStorage.getItem('pasto_player_name');
             const pCat = localStorage.getItem('pasto_player_category');
@@ -241,13 +244,11 @@
             const navBtn = document.getElementById('nav-action-btn');
 
             if (pName) {
-                // Si el jugador ya inició sesión, actualizamos la interfaz con estilo
                 identityTag.innerText = `${pName.toUpperCase()} - ${pCat.toUpperCase()}`;
                 navBtn.innerText = "CERRAR SESIÓN 🚪";
                 navBtn.className = "bg-red-500/10 border border-red-500/30 text-red-400 px-6 py-2 rounded-full text-[10px] digital-font hover:bg-red-500 hover:text-black transition-all";
                 navBtn.onclick = cerrarSesion;
             } else {
-                // Si no hay sesión, dejamos el botón de Ingresar
                 identityTag.innerText = "TOH Padel Club";
                 navBtn.innerText = "INGRESAR";
                 navBtn.className = "bg-brand/10 border border-brand/40 text-brand px-6 py-2 rounded-full text-[10px] digital-font hover:bg-brand hover:text-black transition-all";
@@ -255,7 +256,6 @@
             }
         }
 
-        // Auto-ejecutar la verificación de sesión en cuanto cargue la PWA
         window.onload = () => {
             verificarSesion();
             const primerBoton = document.querySelector('.category-btn');
@@ -264,7 +264,6 @@
             }
         };
 
-        // --- 📊 MOTOR DEL LOBBY DUAL (LOGIN / REGISTRO) ---
         function openRegistration() {
             document.getElementById('registration-drawer').classList.add('drawer-open');
             document.getElementById('global-overlay').style.display = 'block';
@@ -307,14 +306,13 @@
             const data = await res.json();
             if (data.status === 'success') {
                 alert(data.mensaje);
-                // Guardamos los datos de la sesión del jugador en la PWA
                 localStorage.setItem('pasto_player_id', data.player_id);
                 localStorage.setItem('pasto_player_name', data.nombre);
                 localStorage.setItem('pasto_player_category', data.categoria);
                 
                 closeAllDrawers();
-                verificarSesion(); // Actualizamos el Nav al instante sin refrescar la página
-                location.reload(); // Recargamos para que el Muro filtre la tarjeta del jugador
+                verificarSesion();
+                location.reload();
             } else {
                 alert(data.mensaje);
             }
@@ -322,8 +320,8 @@
 
         function cerrarSesion() {
             if (!confirm("¿Deseas cerrar sesión o cambiar de jugador?")) return;
-            localStorage.clear(); // Limpiamos la memoria del celular
-            location.reload(); // Recargamos para que el Nav vuelva a pedir ingreso
+            localStorage.clear();
+            location.reload();
         }
 
         async function enviarRegistro() {
@@ -357,13 +355,13 @@
             const data = await res.json();
             if (data.status === 'success') {
                 alert("¡Solicitud enviada! 🚀 El director de Pasto Padel Club verificará tu nivel. Te notificaremos una vez habilitado.");
+                localStorage.setItem('pasto_player_id', data.player_id);
                 closeAllDrawers();
             } else {
                 alert("Error: " + data.mensaje);
             }
         }
 
-        // --- 📊 MOTOR DEL DOSSIER TÁCTICO (FLUX TOH) ---
         let rivalSeleccionadoId = null;
 
         async function openDossier(playerId) {
@@ -371,7 +369,6 @@
             const dossier = document.getElementById('tactical-dossier');
             const overlay = document.getElementById('global-overlay');
 
-            // Obtenemos el ID real del usuario que inició sesión
             const miIdLocal = parseInt(localStorage.getItem('pasto_player_id')) || 0;
 
             const res = await fetch(`/api/player/${playerId}/stats`);
@@ -423,7 +420,6 @@
             }
         }
 
-        // --- 📸 FUNCIONES DE CARGA DE IMAGEN (SELFIE ONBOARDING) ---
         function abrirSelectorFoto() {
             document.getElementById('pwa-photo-input').click();
         }
@@ -453,7 +449,7 @@
             }
         }
 
-        // --- 🤝 FUNCIÓN DE CONFIRMACIÓN DE RETOS (HANDSHAKE) ---
+        // --- 🤝 CONFIRMACIÓN DE RETOS CORREGIDA (player_3_id) ---
         async function aceptarDuelo(matchId, p3Id) {
             const miIdLocal = parseInt(localStorage.getItem('pasto_player_id')) || 0;
 
@@ -480,6 +476,9 @@
                 
                 const actions = document.getElementById(`handshake-actions-${matchId}`);
                 if (actions) actions.style.display = 'none';
+                
+                const goBoardBtn = document.getElementById(`go-board-${matchId}`);
+                if (goBoardBtn) goBoardBtn.style.display = 'block';
             } else {
                 alert("Error: " + data.mensaje);
             }
