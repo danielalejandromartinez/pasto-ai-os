@@ -82,46 +82,49 @@ async def registrar_guerrero_web(
         return {"status": "error", "mensaje": str(e)}
 
 # ============================================================
-# 🛡️ NUEVA API: SOLICITUD DE ADMISIÓN DESDE LA PWA (FORMULARIO TOH)
+# 🛡️ API: SOLICITUD DE ADMISIÓN DESDE LA PWA CON USUARIO Y PIN (TOH SYSTEM)
 # ============================================================
 @app.post("/api/player/register/request")
 async def solicitar_ingreso_toh(request: Request, db: Session = Depends(get_db)):
     try:
         data = await request.json()
         nombre = data.get("nombre")
-        telefono = data.get("telefono")
+        username = _norm(data.get("username")) # Nombre de usuario único (sin espacios ni tildes)
+        pin_code = data.get("pin")
         categoria_nombre = data.get("categoria")
         club_id = int(data.get("club_id"))
 
-        usuario_existente = db.query(WhatsAppUser).filter_by(phone_number=telefono).first()
-        if usuario_existente and usuario_existente.players:
-            return {"status": "error", "mensaje": "Este número de teléfono ya tiene una cuenta registrada en TOH."}
+        # 1. Evitar duplicidades de Nombre de Usuario
+        usuario_existente = db.query(Player).filter(Player.username == username).first()
+        if usuario_existente:
+            return {"status": "error", "mensaje": "Este Nombre de Usuario ya está ocupado. Intenta con otro."}
 
-        if not usuario_existente:
-            usuario_existente = WhatsAppUser(phone_number=telefono)
-            db.add(usuario_existente); db.flush()
-
+        # 2. Crear el nuevo "Guerrero" pendiente de aprobación (is_approved=False)
         nuevo_jugador = Player(
             name=nombre, 
+            username=username,
+            pin_code=pin_code,
             club_id=club_id, 
-            owner_id=usuario_existente.id, 
-            is_approved=False 
+            is_approved=False # Esperando que el admin lo active
         )
         
+        # 3. Asignarlo a la categoría única seleccionada
         categoria_db = db.query(Category).filter(and_(Category.club_id == club_id, Category.name == categoria_nombre)).first()
         if categoria_db:
             nuevo_jugador.player_categories_list.append(categoria_db)
             
         db.add(nuevo_jugador)
         db.commit()
+        db.refresh(nuevo_jugador) # Obtenemos el ID asignado por la Base de Datos
 
+        # 4. Notificar a la pantalla del administrador para que vea la nueva solicitud al instante
         await manager.broadcast("update", club_id)
-        return {"status": "success", "mensaje": "Solicitud enviada de manera correcta."}
+        return {"status": "success", "mensaje": "Solicitud enviada de manera correcta.", "player_id": nuevo_jugador.id}
     except Exception as e:
         return {"status": "error", "mensaje": str(e)}
 
 # ============================================================
-# 🛡️ NUEVA API: CARGA DE FOTO DE PERFIL DESDE LA PWA (SELFIE ONBOARDING)
+# 🛡️ API: CARGA DE FOTO DE PERFIL DESDE LA PWA (SELFIE ONBOARDING)
 # ============================================================
 @app.post("/api/player/upload-photo")
 async def subir_foto_perfil_toh(
@@ -189,7 +192,7 @@ async def lanzar_desafio_pwa(request: Request, db: Session = Depends(get_db)):
         return {"status": "error", "mensaje": "Fallo en la conexión táctica de la Arena."}
 
 # ============================================================
-# 🛡️ NUEVA API: ACEPTAR DESAFÍO DIRECTO DESDE LA PWA (HANDSHAKE)
+# 🛡️ API: ACEPTAR DESAFÍO DIRECTO DESDE LA PWA (HANDSHAKE)
 # ============================================================
 @app.post("/api/challenge/accept/{match_id}")
 async def aceptar_desafio_toh(match_id: int, db: Session = Depends(get_db)):
@@ -199,9 +202,6 @@ async def aceptar_desafio_toh(match_id: int, db: Session = Depends(get_db)):
         match = db.query(Match).filter(Match.id == match_id).first()
         if not match: return {"status": "error", "mensaje": "Duelo no localizado."}
         
-        # Al aceptar el reto, marcamos el duelo como listo para jugar
-        # (Guardamos a Daniel como P1, Mapy como P3, y el estado is_finished = False)
-        # Esto sirve de gatillo para pintar la tarjeta verde en el live monitor
         match.scheduled_time = datetime.now()
         db.commit()
         
@@ -450,6 +450,9 @@ async def obtener_expediente_tactico(player_id: int, db: Session = Depends(get_d
         print(f"❌ Error en Expediente: {e}")
         return {"status": "error", "mensaje": str(e)}
 
+# ============================================================
+# 📡 API: FINALIZAR PARTIDO DE PADEL DESDE EL TABLERO (10/3)
+# ============================================================
 @app.post("/api/match/finish")
 async def finalizar_partido(request: Request, db: Session = Depends(get_db)):
     try:
@@ -457,17 +460,28 @@ async def finalizar_partido(request: Request, db: Session = Depends(get_db)):
         winner_name = data.get("ganador"); match_id = data.get("matchId")
         match = db.query(Match).filter(Match.id == match_id).first()
         if not match: return {"status": "error", "mensaje": "Duelo no localizado."}
-        p1, p2 = match.player_1, match.player_2
+        
+        # Sincronizamos con el modelo de Padel: Player 1 vs Rival 1 (p3)
+        p1, p3 = match.player_1, match.p3
         winner_norm = _norm(winner_name)
-        if _norm(p1.name) in winner_norm or winner_norm in _norm(p1.name): ganador, participante = p1, p2
-        else: ganador, participante = p2, p1
+        
+        if _norm(p1.name) in winner_norm or winner_norm in _norm(p1.name): 
+            ganador, participante = p1, p3
+        else: 
+            ganador, participante = p3, p1
+            
+        print(f"{C_EXE}[LOOP: PASO 5 - EJECUTANDO ⚡] -> Aplicando lógica 10/3 en Padel: {ganador.name} (W) vs {participante.name} (P){C_END}")
+        
+        # Puntos por victoria (10 XP) y participación (3 XP)
         ganador.eternal_points += 10.0; ganador.wins += 1
-        db.add(PointTransaction(player_id=ganador.id, match_id=match_id, points_earned=10.0, match_type="challenge", timestamp=datetime.now()))
+        db.add(PointTransaction(player_id=ganador.id, points_earned=10.0))
+        
         participante.eternal_points += 3.0; participante.losses += 1
-        db.add(PointTransaction(player_id=participante.id, match_id=match_id, points_earned=3.0, match_type="challenge", timestamp=datetime.now()))
-        match.is_finished = True; match.status = "finished"; match.score = data.get("res"); match.winner_id = ganador.id
+        db.add(PointTransaction(player_id=participante.id, points_earned=3.0))
+        
+        match.is_finished = True; match.score = data.get("res"); match.winner_id = ganador.id
         db.commit()
-        await manager.broadcast("update", 1)
+        await manager.broadcast("update", match.club_id)
         return {"status": "success"}
     except Exception as e:
         return {"status": "error", "mensaje": str(e)}
@@ -476,6 +490,9 @@ async def finalizar_partido(request: Request, db: Session = Depends(get_db)):
 async def ver_tablero(request: Request):
     return templates.TemplateResponse("tablero.html", {"request": request})
 
+# ============================================================
+# 🛡️ RESET NUCLEAR: LIENZO EN BLANCO (SOCIOS VACÍOS)
+# ============================================================
 @app.get("/nuclear-reset")
 def nuclear_reset():
     try:
@@ -483,7 +500,7 @@ def nuclear_reset():
         Base.metadata.create_all(bind=engine)
         db = SessionLocal()
         
-        from models import Country, City, Club, WhiteList, Player, Category, WhatsAppUser
+        from models import Country, City, Club, WhiteList, Category
         
         # 1. Crear geografía
         colombia = Country(name="Colombia")
@@ -492,7 +509,7 @@ def nuclear_reset():
         pasto = City(name="Pasto", country_id=colombia.id)
         db.add(pasto); db.flush()
         
-        # 2. Crear Club de Padel
+        # 2. Crear Club de Padel (Muro vacío)
         club = Club(name="Pasto Padel Club", admin_phone="573152405542", city_id=pasto.id)
         db.add(club); db.flush()
         
@@ -503,44 +520,18 @@ def nuclear_reset():
             "Séptima Categoría", "Octava Categoría", "Damas", "Infantil"
         ]
         
-        categorias_db = {}
         for nombre_cat in categorias_nombres:
             nueva_cat = Category(name=nombre_cat, club_id=club.id)
             db.add(nueva_cat)
-            categorias_db[nombre_cat] = nueva_cat
             
         db.flush()
         
-        # 4. Crear Usuarios de WhatsApp
-        user_daniel = WhatsAppUser(phone_number="573152405542")
-        user_paula = WhatsAppUser(phone_number="573186597045")
-        user_mapa = WhatsAppUser(phone_number="573133969908")
-        db.add(user_daniel)
-        db.add(user_paula)
-        db.add(user_mapa)
-        db.flush()
-        
-        # 5. Crear Jugadores de Prueba (Aprobados por defecto en el reset)
-        p1 = Player(name="Daniel (CEO)", eternal_points=450.0, prestige_rank="ORO", club_id=club.id, owner_id=user_daniel.id, avatar_url="/static/guerrero_1.jpg", is_approved=True)
-        p2 = Player(name="Paula Yela", eternal_points=320.0, prestige_rank="PLATA", club_id=club.id, owner_id=user_paula.id, avatar_url="/static/guerrero_2.jpg", is_approved=True)
-        p3 = Player(name="Mapy Martínez", eternal_points=120.0, prestige_rank="BRONCE", club_id=club.id, owner_id=user_mapa.id, avatar_url="/static/guerrero_3.jpg", is_approved=True)
-        
-        p1.player_categories_list.append(categorias_db["Segunda Categoría"])
-        p2.player_categories_list.append(categorias_db["Segunda Categoría"])
-        p3.player_categories_list.append(categorias_db["Damas"])
-        
-        db.add(p1)
-        db.add(p2)
-        db.add(p3)
-        
-        # 6. Guardar en WhiteList
+        # 4. Guardar en WhiteList para Daniel
         db.add(WhiteList(phone_number="573152405542", full_name="Daniel (CEO)", club_id=club.id))
-        db.add(WhiteList(phone_number="573186597045", full_name="Paula Yela", club_id=club.id))
-        db.add(WhiteList(phone_number="573133969908", full_name="Mapy Martínez", club_id=club.id))
         
         db.commit()
         db.close()
-        return {"status": "success", "message": "Arena oficial TOH configurada con 10 categorías de Padel."}
+        return {"status": "success", "message": "Arena oficial TOH configurada en limpio. ¡Muro vacío y listo para recibir guerreros!"}
     except Exception as e:
         return {"status": "error", "mensaje": str(e)}
 

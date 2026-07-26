@@ -68,6 +68,11 @@ class Player(Base):
     __tablename__ = "players"
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, index=True)
+    
+    # 🛡️ MOTOR DE IDENTIDAD TOH (PWA LOGIN)
+    username = Column(String, unique=True, index=True, nullable=True) # Nombre de usuario único
+    pin_code = Column(String, nullable=True) # PIN de 4 dígitos para login rápido
+    
     eternal_points = Column(Float, default=0.0) 
     prestige_rank = Column(String, default="BRONCE")
     wins = Column(Integer, default=0)
