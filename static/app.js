@@ -5,15 +5,16 @@ const app = {
         categoria: "General", 
         nombre1: "PAREJA A", 
         nombre2: "PAREJA B", 
-        puntos1: 0, // Puntos de Game: 0, 15, 30, 40
+        puntos1: 0, 
         puntos2: 0,
-        games1: 0,  // Games ganados en el set actual
+        games1: 0,  
         games2: 0,
-        sets1: 0,   // Sets ganados en el partido
+        sets1: 0,   
         sets2: 0, 
         
         // Configuración dinámica por formato de Padel
         formatoSelected: "3_SETS_6_G",
+        deuceRule: "oro", // "oro" o "ventaja"
         setsParaGanar: 2, 
         gamesParaGanarSet: 6,
         tieBreakActivo: false,
@@ -52,7 +53,8 @@ const app = {
             
             if (app.datos.matchId) {
                 app.mostrarPantalla('screen-setup');
-                app.setFormat('3_SETS_6_G'); // Formato por defecto al iniciar
+                app.setFormat('3_SETS_6_G'); // Valores iniciales por defecto
+                app.setDeuceRule('oro');
             } else {
                 app.mostrarPantalla('screen-home');
             }
@@ -90,7 +92,7 @@ const app = {
             display.innerText = `${mins.toString().padStart(2,'0')}:${secs.toString().padStart(2,'0')}`;
 
             if (timeLeft === 15) {
-                app.beeper(587, 200, 'sawtooth'); // Aviso sonoro sutil de 15s
+                app.beeper(587, 200, 'sawtooth'); 
                 display.classList.add('timer-urgent');
             }
 
@@ -113,25 +115,48 @@ const app = {
     goToSetup: () => {
         app.mostrarPantalla('screen-setup');
         app.setFormat('3_SETS_6_G');
+        app.setDeuceRule('oro');
     },
 
     // --- 🎛️ SELECTOR DE FORMATOS DE PADEL TOH ---
     setFormat: (formato) => {
         app.datos.formatoSelected = formato;
         
-        // Quitamos la iluminación de neón a todos los botones
-        document.querySelectorAll('.btn-mode').forEach(btn => btn.classList.remove('active'));
+        // Desactivamos la iluminación de neón de los botones de formato
+        const formatosIds = {
+            '3_SETS_6_G': 'btn-f1',
+            '3_SHORT_4_G': 'btn-f2',
+            '1_SET_6_G': 'btn-f3',
+            '1_SHORT_4_G': 'btn-f4'
+        };
         
-        let btnId = '';
-        if (formato === '3_SETS_6_G') { btnId = 'btn-f1'; app.datos.setsParaGanar = 2; app.datos.gamesParaGanarSet = 6; }
-        else if (formato === '3_SHORT_4_G') { btnId = 'btn-f2'; app.datos.setsParaGanar = 2; app.datos.gamesParaGanarSet = 4; }
-        else if (formato === '1_SET_6_G') { btnId = 'btn-f3'; app.datos.setsParaGanar = 1; app.datos.gamesParaGanarSet = 6; }
-        else if (formato === '1_SHORT_4_G') { btnId = 'btn-f4'; app.datos.setsParaGanar = 1; app.datos.gamesParaGanarSet = 4; }
+        Object.values(formatosIds).forEach(id => {
+            const btn = document.getElementById(id);
+            if (btn) btn.classList.remove('active');
+        });
         
-        const btn = document.getElementById(btnId);
-        if (btn) btn.classList.add('active');
+        if (formato === '3_SETS_6_G') { app.datos.setsParaGanar = 2; app.datos.gamesParaGanarSet = 6; }
+        else if (formato === '3_SHORT_4_G') { app.datos.setsParaGanar = 2; app.datos.gamesParaGanarSet = 4; }
+        else if (formato === '1_SET_6_G') { app.datos.setsParaGanar = 1; app.datos.gamesParaGanarSet = 6; }
+        else if (formato === '1_SHORT_4_G') { app.datos.setsParaGanar = 1; app.datos.gamesParaGanarSet = 4; }
+        
+        const btnActivo = document.getElementById(formatosIds[formato]);
+        if (btnActivo) btnActivo.classList.add('active');
         
         console.log(`⚙️ [TOH ARBITRO] Formato cargado: ${formato} | Sets: ${app.datos.setsParaGanar} | Games: ${app.datos.gamesParaGanarSet}`);
+    },
+
+    // --- 🛡️ SELECTOR DE REGLA EN EMPATE 40-40 ---
+    setDeuceRule: (regla) => {
+        app.datos.deuceRule = regla;
+        
+        const btnOro = document.getElementById('btn-deuce-oro');
+        const btnVentaja = document.getElementById('btn-deuce-ventaja');
+        
+        if (btnOro) btnOro.classList.toggle('active', regla === 'oro');
+        if (btnVentaja) btnVentaja.classList.toggle('active', regla === 'ventaja');
+        
+        console.log(`⚙️ [TOH ARBITRO] Regla de empate configurada: ${regla.toUpperCase()}`);
     },
     
     startMatch: () => {
@@ -152,7 +177,6 @@ const app = {
 
     // --- 🎾 MOTOR DE PUNTOS OFICIAL FIP (PADEL ENGINE) ---
     addPoint: (jugador) => {
-        // Guardamos historial para la función deshacer (Undo)
         app.datos.historialPuntos.push(JSON.stringify({
             p1: app.datos.puntos1, p2: app.datos.puntos2,
             g1: app.datos.games1, g2: app.datos.games2,
@@ -166,7 +190,7 @@ const app = {
             app.beeper(880, 80, 'sine');
             app.verificarTieBreak();
         } else {
-            // B. LÓGICA DE JUEGO NORMAL (0, 15, 30, 40, ORO)
+            // B. LÓGICA DE JUEGO NORMAL (0, 15, 30, 40, ADV, ORO)
             const p_actual = jugador === 1 ? app.datos.puntos1 : app.datos.puntos2;
             const p_rival = jugador === 1 ? app.datos.puntos2 : app.datos.puntos1;
 
@@ -177,13 +201,46 @@ const app = {
             } else if (p_actual === 30) {
                 if (jugador === 1) app.datos.puntos1 = 40; else app.datos.puntos2 = 40;
                 
-                // Si llegamos a 40-40, activamos el "Punto de Oro"
+                // Si llegamos a 40-40, activamos la alarma del Punto de Oro
                 if (p_rival === 40) {
-                    app.beeper(220, 500, 'sawtooth'); // Alarma dramática
-                    console.log("⚔️ [PUNTO DE ORO] ¡Punto de oro activado en la Arena!");
+                    if (app.datos.deuceRule === 'oro') {
+                        app.beeper(220, 500, 'sawtooth'); // Alarma dorada
+                        console.log("⚔️ [PUNTO DE ORO] ¡Punto de oro activado en la Arena!");
+                    } else {
+                        app.beeper(440, 200, 'sine'); // Aviso de deuce normal
+                        console.log("↔️ [DEUCE] Iguales. Sistema de Ventajas activado.");
+                    }
                 }
             } else if (p_actual === 40) {
-                // Ganó el game!
+                // Caso 1: Punto de Oro (Gana de inmediato)
+                if (app.datos.deuceRule === 'oro') {
+                    app.ganarJuego(jugador);
+                    return;
+                }
+                
+                // Caso 2: Sistema de Ventajas tradicional
+                if (p_rival === 40) {
+                    // Estaban iguales (40-40), el jugador gana la ventaja (ADV)
+                    if (jugador === 1) {
+                        app.datos.puntos1 = "ADV";
+                        app.datos.puntos2 = "40";
+                    } else {
+                        app.datos.puntos2 = "ADV";
+                        app.datos.puntos1 = "40";
+                    }
+                    app.beeper(700, 100, 'sine');
+                } else if (p_rival === "ADV") {
+                    // El rival tenía ventaja, volvemos a Iguales (40-40)
+                    app.datos.puntos1 = 40;
+                    app.datos.puntos2 = 40;
+                    app.beeper(440, 300, 'sine');
+                } else {
+                    // Tenías ventaja o el rival tenía menos de 40 -> Ganas el juego!
+                    app.ganarJuego(jugador);
+                    return;
+                }
+            } else if (p_actual === "ADV") {
+                // El jugador tenía ventaja y hace el punto -> Gana el juego!
                 app.ganarJuego(jugador);
                 return;
             }
@@ -196,7 +253,6 @@ const app = {
         app.beeper(987, 250, 'sine');
         if (ganador === 1) app.datos.games1++; else app.datos.games2++;
         
-        // Reset de puntos del game
         app.datos.puntos1 = 0;
         app.datos.puntos2 = 0;
         app.datos.tieBreakActivo = false;
@@ -218,7 +274,7 @@ const app = {
             return;
         }
 
-        // Caso 2: Ganó el set por diferencia de 2 games (ej: 6-4, 4-2)
+        // Caso 2: Ganó el set por diferencia de 2 (ej: 6-4, 4-2)
         if ((g1 >= limite || g2 >= limite) && Math.abs(g1 - g2) >= 2) {
             const ganadorSet = g1 > g2 ? 1 : 2;
             app.datos.historialSets.push(`${g1}-${g2}`);
@@ -231,17 +287,15 @@ const app = {
             if (app.datos.sets1 === app.datos.setsParaGanar || app.datos.sets2 === app.datos.setsParaGanar) {
                 app.terminarPartido();
             } else {
-                // Descanso Fin de Set: 2 minutos (120s)
-                setTimeout(() => app.startTimer(120), 500);
+                setTimeout(() => app.startTimer(120), 500); // Descanso fin de set
             }
             return;
         }
 
-        // Caso 3: Cambio de lado (Games impares sumados: 1-0, 2-1, 3-2...)
+        // Caso 3: Cambio de lado en games impares
         const gamesSumados = g1 + g2;
         if (gamesSumados % 2 !== 0) {
-            // Descanso Cambio de Lado: 90 segundos
-            setTimeout(() => app.startTimer(90), 500);
+            setTimeout(() => app.startTimer(90), 500); // Descanso cambio de lado
         }
     },
 
@@ -249,7 +303,6 @@ const app = {
         const p1 = app.datos.puntos1;
         const p2 = app.datos.puntos2;
         
-        // El primero que llegue a 7 con diferencia de 2 gana el tie break
         if ((p1 >= 7 || p2 >= 7) && Math.abs(p1 - p2) >= 2) {
             const ganadorSet = p1 > p2 ? 1 : 2;
             
@@ -283,21 +336,20 @@ const app = {
         document.getElementById('name-p1').innerText = app.datos.nombre1;
         document.getElementById('name-p2').innerText = app.datos.nombre2;
         
-        // Si hay deuce 40-40, mostramos la palabra "ORO" (Punto de Oro) en neón dorado
-        if (app.datos.puntos1 === 40 && app.datos.puntos2 === 40) {
+        // Si hay Punto de Oro (40-40 en modo oro)
+        if (app.datos.puntos1 === 40 && app.datos.puntos2 === 40 && app.datos.deuceRule === 'oro') {
             document.getElementById('score-p1').innerHTML = `<span style="color: var(--neon-gold); text-shadow: 0 0 15px rgba(255,204,0,0.5);">ORO</span>`;
             document.getElementById('score-p2').innerHTML = `<span style="color: var(--neon-gold); text-shadow: 0 0 15px rgba(255,204,0,0.5);">ORO</span>`;
         } else {
-            document.getElementById('score-p1').innerText = app.datos.puntos1.toString().padStart(2, '0');
-            document.getElementById('score-p2').innerText = app.datos.puntos2.toString().padStart(2, '0');
+            // Render normal (incluyendo 00, 15, 30, 40 y ADV)
+            document.getElementById('score-p1').innerText = app.datos.puntos1 === 0 ? "00" : app.datos.puntos1;
+            document.getElementById('score-p2').innerText = app.datos.puntos2 === 0 ? "00" : app.datos.puntos2;
         }
 
-        // El score principal muestra los juegos (games) ganados en el set actual
         document.getElementById('sets-p1').innerText = app.datos.games1;
         document.getElementById('sets-p2').innerText = app.datos.games2;
     },
 
-    // --- 📡 REPORTE PERSISTENTE AL HUB EN RENDER ---
     reset: async () => { 
         if (app.datos.enviando) return;
         
