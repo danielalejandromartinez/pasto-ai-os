@@ -143,7 +143,8 @@
                     <span class="text-[7px] text-white/30 font-bold uppercase tracking-widest">Monthly_XP</span>
                     <span class="text-brand font-black digital-font text-sm">{{ jugador.monthly_points }}</span>
                 </div>
-                {% if jugador.avatar_url %}<img src="{{ jugador.avatar_url }}?v={{ range(1, 999) | random }}" class="absolute inset-0 w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-700">
+                <!-- ✅ CORRECCIÓN FINAL FOTOS BASE64 PERSISTENTES: Quitamos el sufijo ?v= del render -->
+                {% if jugador.avatar_url %}<img src="{{ jugador.avatar_url }}" class="absolute inset-0 w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-700">
                 {% else %}<div class="absolute inset-0 bg-zinc-900 flex items-center justify-center opacity-20"><i class="fa-solid fa-user-shield text-6xl"></i></div>{% endif %}
                 <div class="absolute inset-0 flex flex-col justify-end p-8 z-10 bg-gradient-to-t from-black via-black/40 to-transparent">
                     <span class="text-6xl font-black text-white/10 sport-font italic mb-4">#{{ loop.index }}</span>
@@ -449,7 +450,6 @@
             }
         }
 
-        // --- 🤝 CONFIRMACIÓN DE RETOS CORREGIDA (player_3_id) ---
         async function aceptarDuelo(matchId, p3Id) {
             const miIdLocal = parseInt(localStorage.getItem('pasto_player_id')) || 0;
 
