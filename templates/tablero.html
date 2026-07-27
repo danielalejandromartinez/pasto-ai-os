@@ -20,7 +20,6 @@
         .pulse-dot { width: 6px; height: 6px; background: var(--neon-green); border-radius: 50%; animation: pulse 2s infinite; box-shadow: 0 0 10px var(--neon-green); }
         @keyframes pulse { 0% { opacity: 1; transform: scale(1); } 50% { opacity: 0.5; transform: scale(1.2); } 100% { opacity: 1; transform: scale(1); } }
 
-        /* Estilo específico para el teclado de seguridad */
         .security-input {
             background: rgba(0, 242, 255, 0.05) !important;
             border: 2px solid var(--neon-blue) !important;
@@ -40,7 +39,7 @@
         <div class="pulse-dot"></div> ENJAMBRE TOH SINCRONIZADO
     </div>
 
-    <!-- 🔐 PANTALLA 0: BLOQUEO DE SEGURIDAD (HITO DE CIBERSEGURIDAD) -->
+    <!-- 🔐 PANTALLA 0: BLOQUEO DE SEGURIDAD -->
     <div id="screen-lock" class="screen active">
         <div class="lock-icon">
             <i class="fa-solid fa-shield-halved"></i>
@@ -58,7 +57,7 @@
         <p id="lock-error" style="color: var(--neon-red); font-size: 10px; margin-top: 15px; font-family: 'Orbitron'; display: none;">LLAVE DE COMANDO INVÁLIDA</p>
     </div>
 
-    <!-- PANTALLA 1: INICIO (Oculta hasta desbloquear) -->
+    <!-- PANTALLA 1: INICIO -->
     <div id="screen-home" class="screen">
         <div class="video-container" style="margin-bottom: 30px;">
             <video autoplay loop muted playsinline class="logo-video">
@@ -71,44 +70,52 @@
         </button>
     </div>
 
-    <!-- PANTALLA 2: CONFIGURACIÓN -->
+    <!-- PANTALLA 2: CONFIGURACIÓN (ASISTENTE GUIADO DUAL) -->
     <div id="screen-setup" class="screen">
-        <h2 class="cyber-title">SINCRONIZACIÓN DE DUELO</h2>
-        <div class="glass-panel">
-            <div class="input-wrapper">
+        <h2 class="cyber-title">CONFIGURACIÓN DE DUELO</h2>
+        
+        <div class="glass-panel w-full">
+            <div class="input-wrapper mb-4">
                 <span class="label-mini">PAREJA ALFA</span>
                 <input type="text" id="input-p1" placeholder="CARGANDO..." autocomplete="off" readonly>
             </div>
-            <div class="input-wrapper" style="margin-top: 10px;">
+            <div class="input-wrapper mb-6">
                 <span class="label-mini">PAREJA BETA</span>
                 <input type="text" id="input-p2" placeholder="CARGANDO..." autocomplete="off" readonly>
             </div>
             
-            <div style="width: 100%; text-align: center; margin-top: 15px;">
-                <span class="label-mini">MODALIDAD DE COMBATE</span>
-                <!-- 🎾 GRID DE 2x2 PARA LOS 4 FORMATOS DE PADEL -->
-                <div class="format-selector grid grid-cols-2 gap-3 mt-4 w-full">
-                    <button id="btn-f1" class="btn-mode active py-3 text-[10px] leading-tight" onclick="app.setFormat('3_SETS_6_G')">3 SETS COMPLETOS<br><span class="text-[7px] opacity-40">A 6 GAMES</span></button>
+            <!-- ⚔️ PASO 1 DEL ASISTENTE: REGLA DE EMPATE -->
+            <div id="setup-step-1" class="w-full text-center">
+                <span class="label-mini">PASO 1: REGLA EN EMPATE (40-40)</span>
+                <div class="grid grid-cols-2 gap-3 mt-4 w-full">
+                    <!-- Al dar clic, se configura la regla y viaja automáticamente al Paso 2 -->
+                    <button id="btn-deuce-oro" class="btn-mode py-4 text-[10px] leading-tight" onclick="app.seleccionarPaso1('oro')">PUNTO DE ORO<br><span class="text-[7px] opacity-40">SIN VENTAJA</span></button>
+                    <button id="btn-deuce-ventaja" class="btn-mode py-4 text-[10px] leading-tight" onclick="app.seleccionarPaso1('ventaja')">DEUCE TRADICIONAL<br><span class="text-[7px] opacity-40">CON VENTAJA</span></button>
+                </div>
+            </div>
+
+            <!-- ⚔️ PASO 2 DEL ASISTENTE: MODALIDAD DE JUEGO (Oculto al inicio) -->
+            <div id="setup-step-2" class="w-full text-center hidden">
+                <div class="flex justify-between items-center mb-3">
+                    <button onclick="app.volverAPaso1()" class="text-xs text-brand/60 hover:text-brand digital-font"><i class="fa-solid fa-arrow-left"></i> VOLVER</button>
+                    <span class="label-mini">PASO 2: MODALIDAD DE JUEGO</span>
+                </div>
+                
+                <div class="format-selector grid grid-cols-2 gap-3 w-full">
+                    <button id="btn-f1" class="btn-mode py-3 text-[10px] leading-tight" onclick="app.setFormat('3_SETS_6_G')">3 SETS COMPLETOS<br><span class="text-[7px] opacity-40">A 6 GAMES</span></button>
                     <button id="btn-f2" class="btn-mode py-3 text-[10px] leading-tight" onclick="app.setFormat('3_SHORT_4_G')">3 SHORT SETS<br><span class="text-[7px] opacity-40">A 4 GAMES</span></button>
                     <button id="btn-f3" class="btn-mode py-3 text-[10px] leading-tight" onclick="app.setFormat('1_SET_6_G')">SET ÚNICO COMPLETO<br><span class="text-[7px] opacity-40">A 6 GAMES</span></button>
                     <button id="btn-f4" class="btn-mode py-3 text-[10px] leading-tight" onclick="app.setFormat('1_SHORT_4_G')">SET ÚNICO SHORT<br><span class="text-[7px] opacity-40">A 4 GAMES</span></button>
                 </div>
-            </div>
 
-            <!-- 🛡️ NUEVO SELECTOR DE REGLA DE DEUCE (VENTAJA vs ORO) -->
-            <div style="width: 100%; text-align: center; margin-top: 15px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 15px;">
-                <span class="label-mini">REGLA EN EMPATE (40-40)</span>
-                <div class="grid grid-cols-2 gap-3 mt-3 w-full">
-                    <button id="btn-deuce-oro" class="btn-mode active py-3 text-[10px] leading-tight" onclick="app.setDeuceRule('oro')">PUNTO DE ORO<br><span class="text-[7px] opacity-40">SIN VENTAJA</span></button>
-                    <button id="btn-deuce-ventaja" class="btn-mode py-3 text-[10px] leading-tight" onclick="app.setDeuceRule('ventaja')">DEUCE TRADICIONAL<br><span class="text-[7px] opacity-40">CON VENTAJA</span></button>
-                </div>
+                <button class="btn-cyber w-full mt-6" onclick="app.startMatch()">
+                    INICIALIZAR MOTOR ⚔️
+                </button>
             </div>
 
         </div>
-        <button class="btn-cyber" onclick="app.startMatch()" style="margin-top: 30px;">
-            INICIALIZAR MOTOR
-        </button>
-        <button style="background: transparent; color: #ff4444; border: none; font-family: 'Orbitron'; font-size: 9px; cursor: pointer; margin-top: 15px; opacity: 0.5;" onclick="window.location.href='/club/1'">ABORTAR MISIÓN</button>
+        
+        <button id="btn-abortar" style="background: transparent; color: #ff4444; border: none; font-family: 'Orbitron'; font-size: 9px; cursor: pointer; margin-top: 15px; opacity: 0.5;" onclick="window.location.href='/club/1'">ABORTAR MISIÓN</button>
     </div>
 
     <!-- PANTALLA 3: TABLERO -->

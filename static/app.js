@@ -5,11 +5,11 @@ const app = {
         categoria: "General", 
         nombre1: "PAREJA A", 
         nombre2: "PAREJA B", 
-        puntos1: 0, 
+        puntos1: 0, // Puntos de Game: 0, 15, 30, 40
         puntos2: 0,
-        games1: 0,  
+        games1: 0,  // Games ganados en el set actual
         games2: 0,
-        sets1: 0,   
+        sets1: 0,   // Sets ganados en el partido
         sets2: 0, 
         
         // Configuración dinámica por formato de Padel
@@ -52,9 +52,7 @@ const app = {
             document.getElementById('screen-lock').classList.remove('active');
             
             if (app.datos.matchId) {
-                app.mostrarPantalla('screen-setup');
-                app.setFormat('3_SETS_6_G'); // Valores iniciales por defecto
-                app.setDeuceRule('oro');
+                app.goToSetup(); // Usamos la función optimizada
             } else {
                 app.mostrarPantalla('screen-home');
             }
@@ -116,13 +114,37 @@ const app = {
         app.mostrarPantalla('screen-setup');
         app.setFormat('3_SETS_6_G');
         app.setDeuceRule('oro');
+        
+        // Resetear el asistente visual para que siempre empiece en el Paso 1
+        const step1 = document.getElementById('setup-step-1');
+        const step2 = document.getElementById('setup-step-2');
+        if (step1 && step2) {
+            step1.classList.remove('hidden');
+            step2.classList.add('hidden');
+        }
+    },
+
+    // --- 🧙‍♂️ ASISTENTE GUIADO DE CONFIGURACIÓN ---
+    seleccionarPaso1: (regla) => {
+        app.setDeuceRule(regla);
+        
+        // Transición visual fluida al Paso 2
+        document.getElementById('setup-step-1').classList.add('hidden');
+        document.getElementById('setup-step-2').classList.remove('hidden');
+        app.beeper(600, 100, 'sine');
+    },
+
+    volverAPaso1: () => {
+        // Transición visual de regreso al Paso 1
+        document.getElementById('setup-step-2').classList.add('hidden');
+        document.getElementById('setup-step-1').classList.remove('hidden');
+        app.beeper(400, 100, 'sine');
     },
 
     // --- 🎛️ SELECTOR DE FORMATOS DE PADEL TOH ---
     setFormat: (formato) => {
         app.datos.formatoSelected = formato;
         
-        // Desactivamos la iluminación de neón de los botones de formato
         const formatosIds = {
             '3_SETS_6_G': 'btn-f1',
             '3_SHORT_4_G': 'btn-f2',
@@ -201,7 +223,7 @@ const app = {
             } else if (p_actual === 30) {
                 if (jugador === 1) app.datos.puntos1 = 40; else app.datos.puntos2 = 40;
                 
-                // Si llegamos a 40-40, activamos la alarma del Punto de Oro
+                // Si llegamos a 40-40, activamos la alarma
                 if (p_rival === 40) {
                     if (app.datos.deuceRule === 'oro') {
                         app.beeper(220, 500, 'sawtooth'); // Alarma dorada
@@ -266,7 +288,7 @@ const app = {
         const g2 = app.datos.games2;
         const limite = app.datos.gamesParaGanarSet;
 
-        // Caso 1: Tie-break (llegaron a 6-6 o 4-4 en short set)
+        // Caso 1: Tie-break (llegaron al límite)
         if (g1 === limite && g2 === limite) {
             app.datos.tieBreakActivo = true;
             app.beeper(523, 400, 'sine');
@@ -274,7 +296,7 @@ const app = {
             return;
         }
 
-        // Caso 2: Ganó el set por diferencia de 2 (ej: 6-4, 4-2)
+        // Caso 2: Ganó el set por diferencia de 2
         if ((g1 >= limite || g2 >= limite) && Math.abs(g1 - g2) >= 2) {
             const ganadorSet = g1 > g2 ? 1 : 2;
             app.datos.historialSets.push(`${g1}-${g2}`);
@@ -336,12 +358,10 @@ const app = {
         document.getElementById('name-p1').innerText = app.datos.nombre1;
         document.getElementById('name-p2').innerText = app.datos.nombre2;
         
-        // Si hay Punto de Oro (40-40 en modo oro)
         if (app.datos.puntos1 === 40 && app.datos.puntos2 === 40 && app.datos.deuceRule === 'oro') {
             document.getElementById('score-p1').innerHTML = `<span style="color: var(--neon-gold); text-shadow: 0 0 15px rgba(255,204,0,0.5);">ORO</span>`;
             document.getElementById('score-p2').innerHTML = `<span style="color: var(--neon-gold); text-shadow: 0 0 15px rgba(255,204,0,0.5);">ORO</span>`;
         } else {
-            // Render normal (incluyendo 00, 15, 30, 40 y ADV)
             document.getElementById('score-p1').innerText = app.datos.puntos1 === 0 ? "00" : app.datos.puntos1;
             document.getElementById('score-p2').innerText = app.datos.puntos2 === 0 ? "00" : app.datos.puntos2;
         }
