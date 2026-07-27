@@ -238,6 +238,8 @@ async def aceptar_desafio_toh(match_id: int, db: Session = Depends(get_db)):
         if not match: return {"status": "error", "mensaje": "Duelo no localizado."}
         
         match.scheduled_time = datetime.now()
+        # ✅ ACTIVA EL INTERRUPTOR DE CONFIRMACIÓN DE DESAFÍO
+        match.is_confirmed = True
         db.commit()
         
         print(f"{C_EXE}[LOOP: PASO 5 - EJECUTANDO ⚡] -> Desafío confirmado.{C_END}")
@@ -386,7 +388,8 @@ async def finalizar_partido_manual(request: Request, db: Session = Depends(get_d
         nuevo_match = Match(
             player_1_id=p1.id, player_2_id=p2.id if p2 else p1.id,
             player_3_id=p3.id, player_4_id=p4.id if p4 else p3.id,
-            club_id=club_id, score=data.get("score"), is_finished=True
+            club_id=club_id, score=data.get("score"), is_finished=True,
+            is_confirmed=True # Si lo crea el admin manual, nace confirmado
         )
         db.add(nuevo_match)
         db.commit()

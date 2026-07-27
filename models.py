@@ -125,6 +125,10 @@ class Match(Base):
     
     score = Column(String, nullable=True) 
     is_finished = Column(Boolean, default=False)
+    
+    # 🤝 INTERRUPTOR DE CONFIRMACIÓN (HANDSHAKE)
+    is_confirmed = Column(Boolean, default=False)
+    
     scheduled_time = Column(DateTime, nullable=True)
     
     tournament_id = Column(Integer, ForeignKey("tournaments.id"), nullable=True)
