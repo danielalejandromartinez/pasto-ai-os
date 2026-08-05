@@ -33,10 +33,10 @@ class BookingAgent:
             return {"status": "error", "reply": "Identidad no localizada en la Arena."}
         return self.lanzar_desafio_tactico(p1.id, p2.id, fecha_iso, club_id)
 
-    # --- 🚀 METODO: TAP-TO-DUEL DE PADEL ---
+    # --- 🚀 METODO: TAP-TO-DUEL DE PADEL (DRAFT ABIERTO) ---
     def lanzar_desafio_tactico(self, retador_id, rival_id, fecha_iso, club_id, court_number=None):
         """
-        Misión: Registro de duelo directo en Padel.
+        Misión: Registro de duelo directo en Padel con sillas vacías para la comunidad.
         """
         # 1. Obtener Club y su Zona Horaria
         club = self.db.query(Club).filter_by(id=club_id).first()
@@ -82,7 +82,6 @@ class BookingAgent:
         ).first()
 
         if guerreros_ocupados:
-            # Determinamos quién está ocupado para avisar de forma educada
             envolucrado = p1.name if (
                 guerreros_ocupados.player_1_id == p1.id or 
                 guerreros_ocupados.player_2_id == p1.id or
@@ -95,13 +94,12 @@ class BookingAgent:
             }
 
         # 5. Crear el registro del duelo en la BD
-        # Como en Padel se juega de a 2, asignamos al Retador como Player 1 y al Retado como Player 3 (Rival 1)
-        # Los slots de parejas (Player 2 y Player 4) quedan listos por si agregan compañeros luego.
+        # ✅ CORRECCIÓN RED SOCIAL: player_2 y player_4 quedan vacíos (None)
         nuevo_match = Match(
             player_1_id=p1.id, 
-            player_2_id=p1.id, # Daniel juega individual o se duplica para mantener la integridad por ahora
+            player_2_id=None, 
             player_3_id=p2.id,
-            player_4_id=p2.id,
+            player_4_id=None,
             club_id=club_id,
             score="VS", 
             is_finished=False, 
