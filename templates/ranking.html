@@ -67,10 +67,8 @@
 </head>
 <body class="min-h-screen pb-40">
 
-    <!-- INPUT INVISIBLE DE SELECCIÓN DE FOTO -->
     <input type="file" id="pwa-photo-input" class="hidden" accept="image/*" onchange="subirFotoPerfil(this)">
 
-    <!-- NAV -->
     <nav class="fixed top-0 w-full z-50 px-6 md:px-12 h-24 flex items-center justify-between backdrop-blur-md border-b border-white/5">
         <div class="flex items-center gap-6">
             <div class="h-10 w-16 rounded-lg overflow-hidden bg-black border border-white/10 shadow-2xl">
@@ -84,7 +82,6 @@
             </div>
         </div>
         <div class="flex gap-2">
-            <button onclick="toggleBooking(true)" class="bg-white/10 border border-white/20 text-white px-4 py-2 rounded-full text-[10px] digital-font hover:bg-white hover:text-black transition-all">RESERVAR</button>
             <button id="nav-action-btn" onclick="openRegistration()" class="bg-brand/10 border border-brand/40 text-brand px-6 py-2 rounded-full text-[10px] digital-font hover:bg-brand hover:text-black transition-all">INGRESAR</button>
         </div>
     </nav>
@@ -103,30 +100,50 @@
     </div>
 
     <div class="max-w-[1700px] mx-auto px-6 md:px-12">
+        
+        <!-- 🚀 MONITOR DE DUELOS (DRAFT ABIERTO TOH) -->
         {% if retos %}
         <div class="mb-20">
             <h2 class="text-[10px] digital-font tracking-[0.6em] mb-8 opacity-40 uppercase">Live_Duels_Monitor</h2>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {% for reto in retos %}
                 <div class="relative p-8 rounded-3xl border border-white/5 bg-white/5 flex flex-col items-center group overflow-hidden">
-                    <!-- ✅ Sincronizado con is_confirmed -->
-                    <span id="badge-status-{{ reto.id }}" class="relative z-10 text-[8px] digital-font mb-4 uppercase tracking-widest {{ 'text-green-400' if reto.is_confirmed else 'text-yellow-500' }}">{{ 'DUELO CONFIRMADO' if reto.is_confirmed else 'RETO PROPUESTO' }}</span>
+                    <span id="badge-status-{{ reto.id }}" class="relative z-10 text-[8px] digital-font mb-6 uppercase tracking-widest {{ 'text-green-400' if reto.is_confirmed else 'text-yellow-500' }}">{{ 'DUELO CONFIRMADO' if reto.is_confirmed else 'BUSCANDO JUGADORES...' }}</span>
                     
                     <div class="relative z-10 flex justify-between w-full items-center mb-6">
-                        <span class="sport-font text-xl">{{ reto.player_1.name.split(' ')[0] if reto.player_1 else 'Daniel' }}</span>
-                        <span class="text-xs opacity-20 italic font-black">VS</span>
-                        <span class="sport-font text-xl">{{ reto.p3.name.split(' ')[0] if reto.p3 else 'Mapy' }}</span>
+                        
+                        <!-- EQUIPO A (Retador) -->
+                        <div class="flex flex-col items-center text-center w-2/5">
+                            <span class="sport-font text-lg text-white truncate w-full">{{ reto.player_1.name.split(' ')[0] if reto.player_1 else 'Retador' }}</span>
+                            {% if reto.player_2_id %}
+                                <span class="sport-font text-sm text-brand truncate w-full">+ {{ reto.player_2.name.split(' ')[0] }}</span>
+                            {% else %}
+                                <button onclick="unirseDuelo({{ reto.id }}, 'A')" class="mt-2 px-3 py-1 bg-white/10 hover:bg-brand hover:text-black rounded text-[9px] digital-font transition-all border border-dashed border-white/20">🪑 UNIRSE</button>
+                            {% endif %}
+                        </div>
+
+                        <span class="text-xs opacity-20 italic font-black mx-2">VS</span>
+
+                        <!-- EQUIPO B (Rival) -->
+                        <div class="flex flex-col items-center text-center w-2/5">
+                            <span class="sport-font text-lg text-white truncate w-full">{{ reto.p3.name.split(' ')[0] if reto.p3 else 'Rival' }}</span>
+                            {% if reto.player_4_id %}
+                                <span class="sport-font text-sm text-brand truncate w-full">+ {{ reto.p4.name.split(' ')[0] }}</span>
+                            {% else %}
+                                <button onclick="unirseDuelo({{ reto.id }}, 'B')" class="mt-2 px-3 py-1 bg-white/10 hover:bg-brand hover:text-black rounded text-[9px] digital-font transition-all border border-dashed border-white/20">🪑 UNIRSE</button>
+                            {% endif %}
+                        </div>
+
                     </div>
 
-                    <!-- 🤝 BOTONES DE ACCIÓN PARA EL RIVAL RETADO (Solo si no está confirmado) -->
-                    <div id="handshake-actions-{{ reto.id }}" class="relative z-10 w-full flex gap-3" style="display: {{ 'none' if reto.is_confirmed else 'flex' }};">
-                        <button onclick="aceptarDuelo({{ reto.id }}, {{ reto.player_3_id }})" class="flex-1 py-3 bg-green-500/20 text-green-400 border border-green-500/30 rounded-xl text-[10px] digital-font hover:bg-green-500 hover:text-black font-bold uppercase transition-all">Aceptar 🎾</button>
-                        <button onclick="alert('Funcionalidad de reprogramación en desarrollo.')" class="flex-1 py-3 bg-red-500/10 text-red-400 border border-red-500/20 rounded-xl text-[10px] digital-font hover:bg-red-500 hover:text-black font-bold uppercase transition-all">Posponer ⏰</button>
+                    <!-- 🤝 BOTÓN DE ACEPTAR PARA EL RIVAL PRINCIPAL -->
+                    <div id="handshake-actions-{{ reto.id }}" class="relative z-10 w-full flex justify-center" style="display: {{ 'none' if reto.is_confirmed else 'flex' }};">
+                        <button onclick="aceptarDuelo({{ reto.id }}, {{ reto.player_3_id }})" class="w-full py-3 bg-green-500/20 text-green-400 border border-green-500/30 rounded-xl text-[10px] digital-font hover:bg-green-500 hover:text-black font-bold uppercase transition-all">Aceptar Reto 🎾</button>
                     </div>
                     
-                    <!-- BOTÓN IR AL TABLERO (Solo si el duelo ya está confirmado) -->
+                    <!-- BOTÓN IR AL TABLERO (Para el Árbitro) -->
                     <div id="go-board-{{ reto.id }}" class="relative z-10 w-full mt-2" style="display: {{ 'block' if reto.is_confirmed else 'none' }};">
-                        <button onclick="window.location.href='/tablero?matchId={{ reto.id }}&p1={{ reto.player_1.name if reto.player_1 else 'Daniel' }}&p2={{ reto.p3.name if reto.p3 else 'Mapy' }}'" class="w-full py-3 bg-brand text-black rounded-xl text-[10px] digital-font font-bold uppercase transition-all">Ir al Tablero ⚔️</button>
+                        <button onclick="window.location.href='/tablero?matchId={{ reto.id }}&p1={{ reto.player_1.name.split(' ')[0] if reto.player_1 else 'A1' }} y {{ reto.player_2.name.split(' ')[0] if reto.player_2 else 'A2' }}&p2={{ reto.p3.name.split(' ')[0] if reto.p3 else 'B1' }} y {{ reto.p4.name.split(' ')[0] if reto.p4 else 'B2' }}'" class="w-full py-3 bg-brand text-black rounded-xl text-[10px] digital-font font-bold uppercase transition-all">Ir al Tablero del Árbitro ⚔️</button>
                     </div>
                 </div>
                 {% endfor %}
@@ -142,7 +159,6 @@
                     <span class="text-[7px] text-white/30 font-bold uppercase tracking-widest">Monthly_XP</span>
                     <span class="text-brand font-black digital-font text-sm">{{ jugador.monthly_points }}</span>
                 </div>
-                <!-- ✅ CORRECCIÓN FINAL FOTOS BASE64 PERSISTENTES: Quitamos el sufijo ?v= del render -->
                 {% if jugador.avatar_url %}<img src="{{ jugador.avatar_url }}" class="absolute inset-0 w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-700">
                 {% else %}<div class="absolute inset-0 bg-zinc-900 flex items-center justify-center opacity-20"><i class="fa-solid fa-user-shield text-6xl"></i></div>{% endif %}
                 <div class="absolute inset-0 flex flex-col justify-end p-8 z-10 bg-gradient-to-t from-black via-black/40 to-transparent">
@@ -166,7 +182,7 @@
 
     <div id="global-overlay" onclick="closeAllDrawers()"></div>
 
-    <!-- 🛡️ LOBBY DE IDENTIDAD TOH (LOGIN / REGISTRO DUAL) -->
+    <!-- 🛡️ LOBBY DE IDENTIDAD TOH (LOGIN / REGISTRO) -->
     <div id="registration-drawer">
         <div class="max-w-md mx-auto h-full flex flex-col">
             <div class="flex gap-6 border-b border-white/10 pb-4 mb-6">
@@ -197,6 +213,7 @@
         </div>
     </div>
 
+    <!-- 🛡️ DOSSIER TÁCTICO -->
     <div id="tactical-dossier">
         <div class="max-w-md mx-auto flex flex-col h-full">
             <div class="flex justify-between items-center mb-6">
@@ -420,7 +437,6 @@
             }
         }
 
-        // --- 📸 FUNCIONES DE CARGA DE IMAGEN (SELFIE ONBOARDING) ---
         function abrirSelectorFoto() {
             document.getElementById('pwa-photo-input').click();
         }
@@ -450,7 +466,33 @@
             }
         }
 
-        // --- 🤝 FUNCIÓN DE CONFIRMACIÓN DE RETOS (HANDSHAKE) ---
+        // --- 🤝 FUNCIONES DE RED SOCIAL TOH (DRAFT Y HANDSHAKE) ---
+        async function unirseDuelo(matchId, team) {
+            const miIdLocal = parseInt(localStorage.getItem('pasto_player_id')) || 0;
+
+            if (miIdLocal === 0) {
+                alert("Por favor inicia sesión para poder unirte a un partido.");
+                openRegistration();
+                return;
+            }
+
+            if (!confirm("¿Deseas ocupar esta silla libre en la Arena?")) return;
+
+            const res = await fetch(`/api/challenge/join/${matchId}`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ player_id: miIdLocal, team: team })
+            });
+
+            const data = await res.json();
+            if (data.status === 'success') {
+                alert(data.mensaje);
+                location.reload();
+            } else {
+                alert("Error: " + data.mensaje);
+            }
+        }
+
         async function aceptarDuelo(matchId, p3Id) {
             const miIdLocal = parseInt(localStorage.getItem('pasto_player_id')) || 0;
 
@@ -468,18 +510,7 @@
             const data = await res.json();
             if (data.status === 'success') {
                 alert(data.mensaje);
-                
-                const badge = document.getElementById(`badge-status-${matchId}`);
-                if (badge) {
-                    badge.innerText = "DUELO CONFIRMADO";
-                    badge.style.color = "#00ff88"; 
-                }
-                
-                const actions = document.getElementById(`handshake-actions-${matchId}`);
-                if (actions) actions.style.display = 'none';
-                
-                const goBoardBtn = document.getElementById(`go-board-${matchId}`);
-                if (goBoardBtn) goBoardBtn.style.display = 'block';
+                location.reload();
             } else {
                 alert("Error: " + data.mensaje);
             }

@@ -90,35 +90,31 @@ async def solicitar_ingreso_toh(request: Request, db: Session = Depends(get_db))
     try:
         data = await request.json()
         nombre = data.get("nombre")
-        username = _norm(data.get("username")) # Nombre de usuario único (sin espacios ni tildes)
+        username = _norm(data.get("username")) 
         pin_code = data.get("pin")
         categoria_nombre = data.get("categoria")
         club_id = int(data.get("club_id"))
 
-        # 1. Evitar duplicidades de Nombre de Usuario
         usuario_existente = db.query(Player).filter(Player.username == username).first()
         if usuario_existente:
             return {"status": "error", "mensaje": "Este Nombre de Usuario ya está ocupado. Intenta con otro."}
 
-        # 2. Crear el nuevo "Guerrero" pendiente de aprobación (is_approved=False)
         nuevo_jugador = Player(
             name=nombre, 
             username=username,
             pin_code=pin_code,
             club_id=club_id, 
-            is_approved=False # Esperando que el admin lo active
+            is_approved=False 
         )
         
-        # 3. Asignarlo a la categoría única seleccionada
         categoria_db = db.query(Category).filter(and_(Category.club_id == club_id, Category.name == categoria_nombre)).first()
         if categoria_db:
             nuevo_jugador.player_categories_list.append(categoria_db)
             
         db.add(nuevo_jugador)
         db.commit()
-        db.refresh(nuevo_jugador) # Obtenemos el ID asignado por la Base de Datos
+        db.refresh(nuevo_jugador) 
 
-        # 4. Notificar a la pantalla del administrador para que vea la nueva solicitud al instante
         await manager.broadcast("update", club_id)
         return {"status": "success", "mensaje": "Solicitud enviada de manera correcta.", "player_id": nuevo_jugador.id}
     except Exception as e:
@@ -134,20 +130,16 @@ async def verificar_ingreso_toh(request: Request, db: Session = Depends(get_db))
         username = _norm(data.get("username"))
         pin_code = data.get("pin")
 
-        # 1. Buscar al jugador en la base de datos por su usuario único
         jugador = db.query(Player).filter(Player.username == username).first()
         if not jugador:
             return {"status": "error", "mensaje": "Nombre de usuario no localizado en la Arena."}
 
-        # 2. Verificar que el PIN de seguridad coincida
         if jugador.pin_code != pin_code:
             return {"status": "error", "mensaje": "PIN de seguridad incorrecto."}
 
-        # 3. Verificar que esté aprobado por el Administrador
         if not jugador.is_approved:
             return {"status": "pending", "mensaje": "Tu perfil está pendiente de aprobación por la administración del club."}
 
-        # 4. Obtener su categoría activa
         categoria_nombre = jugador.player_categories_list[0].name if jugador.player_categories_list else "General"
 
         return {
@@ -175,11 +167,9 @@ async def subir_foto_perfil_toh(
         jugador = db.query(Player).filter(Player.id == player_id).first()
         if not jugador: return {"status": "error", "mensaje": "Jugador no localizado."}
         
-        # Leemos los bytes de la foto cargada y los encriptamos en Base64
         contenido_imagen = await foto.read()
         base64_encoded = base64.b64encode(contenido_imagen).decode('utf-8')
         
-        # Guardamos el string base64 en la base de datos (Esto hace que la foto NUNCA desaparezca)
         jugador.avatar_url = f"data:image/jpeg;base64,{base64_encoded}"
         db.commit()
         
@@ -238,7 +228,6 @@ async def aceptar_desafio_toh(match_id: int, db: Session = Depends(get_db)):
         if not match: return {"status": "error", "mensaje": "Duelo no localizado."}
         
         match.scheduled_time = datetime.now()
-        # ✅ ACTIVA EL INTERRUPTOR DE CONFIRMACIÓN DE DESAFÍO
         match.is_confirmed = True
         db.commit()
         
@@ -246,6 +235,50 @@ async def aceptar_desafio_toh(match_id: int, db: Session = Depends(get_db)):
         await manager.broadcast("update", match.club_id)
         return {"status": "success", "mensaje": "¡Duelo confirmado! Prepárate para entrar a la Arena."}
     except Exception as e:
+        return {"status": "error", "mensaje": str(e)}
+
+# ============================================================
+# 🤝 NUEVA API: UNIRSE AL DRAFT ABIERTO (LA RED SOCIAL TOH)
+# ============================================================
+@app.post("/api/challenge/join/{match_id}")
+async def unirse_desafio_toh(match_id: int, request: Request, db: Session = Depends(get_db)):
+    try:
+        data = await request.json()
+        player_id = int(data.get("player_id"))
+        team = data.get("team") # "A" para acompañar al Retador, "B" para acompañar al Retado
+
+        print(f"\n{C_OBS}[LOOP: PASO 1 - OBSERVANDO 👁️] -> Jugador {player_id} solicitando silla en Match {match_id} (Equipo {team}){C_END}")
+
+        match = db.query(Match).filter(Match.id == match_id).first()
+        if not match: return {"status": "error", "mensaje": "Duelo no localizado."}
+        
+        # 1. Seguridad: Verificar que el jugador no esté ya en el partido
+        if player_id in [match.player_1_id, match.player_2_id, match.player_3_id, match.player_4_id]:
+            return {"status": "error", "mensaje": "Ya tienes una silla reservada en esta batalla."}
+
+        print(f"{C_EXE}[LOOP: PASO 5 - EJECUTANDO ⚡] -> Asignando asiento en el Draft...{C_END}")
+        
+        # 2. Lógica de Asignación de Sillas Vacías
+        if team == "A":
+            if match.player_2_id is None:
+                match.player_2_id = player_id
+            else:
+                return {"status": "error", "mensaje": "La pareja de este jugador ya está completa."}
+        elif team == "B":
+            if match.player_4_id is None:
+                match.player_4_id = player_id
+            else:
+                return {"status": "error", "mensaje": "La pareja de este jugador ya está completa."}
+        else:
+            return {"status": "error", "mensaje": "Equipo no válido."}
+
+        db.commit()
+        
+        print(f"{C_VER}[LOOP: PASO 6 - VERIFICANDO ✅] -> Silla asignada correctamente.{C_END}")
+        await manager.broadcast("update", match.club_id)
+        return {"status": "success", "mensaje": "¡Te has unido a la batalla con éxito!"}
+    except Exception as e:
+        print(f"❌ Error al unirse: {e}")
         return {"status": "error", "mensaje": str(e)}
 
 # ============================================================
@@ -389,7 +422,7 @@ async def finalizar_partido_manual(request: Request, db: Session = Depends(get_d
             player_1_id=p1.id, player_2_id=p2.id if p2 else p1.id,
             player_3_id=p3.id, player_4_id=p4.id if p4 else p3.id,
             club_id=club_id, score=data.get("score"), is_finished=True,
-            is_confirmed=True # Si lo crea el admin manual, nace confirmado
+            is_confirmed=True 
         )
         db.add(nuevo_match)
         db.commit()
@@ -417,7 +450,6 @@ async def ver_club(request: Request, club_id: int, db: Session = Depends(get_db)
         cats_db = db.query(Category).filter_by(club_id=club_id).all()
         cats_procesadas = [{"id": c.id, "name": c.name} for c in cats_db] if cats_db else [{"id": 0, "name": "General"}]
         
-        # Solo mostrar jugadores aprobados
         jugadores_raw = db.query(Player).filter(and_(Player.club_id == club_id, Player.is_approved == True)).all()
         
         ahora = datetime.now()
@@ -488,9 +520,6 @@ async def obtener_expediente_tactico(player_id: int, db: Session = Depends(get_d
         print(f"❌ Error en Expediente: {e}")
         return {"status": "error", "mensaje": str(e)}
 
-# ============================================================
-# 📡 API: FINALIZAR PARTIDO DE PADEL DESDE EL TABLERO (10/3)
-# ============================================================
 @app.post("/api/match/finish")
 async def finalizar_partido(request: Request, db: Session = Depends(get_db)):
     try:
