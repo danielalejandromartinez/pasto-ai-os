@@ -520,35 +520,61 @@ async def obtener_expediente_tactico(player_id: int, db: Session = Depends(get_d
         print(f"❌ Error en Expediente: {e}")
         return {"status": "error", "mensaje": str(e)}
 
+# ============================================================
+# 📡 API: FINALIZAR PARTIDO DE PADEL DESDE EL TABLERO (10/3 A 4 JUGADORES)
+# ============================================================
 @app.post("/api/match/finish")
 async def finalizar_partido(request: Request, db: Session = Depends(get_db)):
     try:
         data = await request.json()
-        winner_name = data.get("ganador"); match_id = data.get("matchId")
+        winner_name = data.get("ganador")
+        match_id = data.get("matchId")
+        
         match = db.query(Match).filter(Match.id == match_id).first()
         if not match: return {"status": "error", "mensaje": "Duelo no localizado."}
         
-        p1, p3 = match.player_1, match.p3
+        # 1. Traemos a los 4 guerreros de la base de datos
+        p1, p2 = match.player_1, match.player_2
+        p3, p4 = match.p3, match.p4
         winner_norm = _norm(winner_name)
         
-        if _norm(p1.name) in winner_norm or winner_norm in _norm(p1.name): 
-            ganador, participante = p1, p3
-        else: 
-            ganador, participante = p3, p1
+        print(f"\n{C_EXE}[LOOP: PASO 5 - EJECUTANDO ⚡] -> Repartiendo gloria y puntos en la Arena...{C_END}")
+        
+        # 2. Determinamos qué equipo ganó (Revisamos si el nombre del Capitán A está en el texto del ganador)
+        nombre_p1_corto = _norm(p1.name.split(' ')[0]) if p1 else ""
+        
+        if nombre_p1_corto in winner_norm: 
+            # 🏆 GANÓ EL EQUIPO A (P1 y P2)
+            p1.eternal_points += 10.0; p1.wins += 1; db.add(PointTransaction(player_id=p1.id, points_earned=10.0))
+            if p2: p2.eternal_points += 10.0; p2.wins += 1; db.add(PointTransaction(player_id=p2.id, points_earned=10.0))
             
-        print(f"{C_EXE}[LOOP: PASO 5 - EJECUTANDO ⚡] -> Aplicando lógica 10/3 en Padel: {ganador.name} (W) vs {participante.name} (P){C_END}")
+            p3.eternal_points += 3.0; p3.losses += 1; db.add(PointTransaction(player_id=p3.id, points_earned=3.0))
+            if p4: p4.eternal_points += 3.0; p4.losses += 1; db.add(PointTransaction(player_id=p4.id, points_earned=3.0))
+            
+            match.winner_team = "A"
+            match.winner_id = p1.id
+        else: 
+            # 🏆 GANÓ EL EQUIPO B (P3 y P4)
+            p3.eternal_points += 10.0; p3.wins += 1; db.add(PointTransaction(player_id=p3.id, points_earned=10.0))
+            if p4: p4.eternal_points += 10.0; p4.wins += 1; db.add(PointTransaction(player_id=p4.id, points_earned=10.0))
+            
+            p1.eternal_points += 3.0; p1.losses += 1; db.add(PointTransaction(player_id=p1.id, points_earned=3.0))
+            if p2: p2.eternal_points += 3.0; p2.losses += 1; db.add(PointTransaction(player_id=p2.id, points_earned=3.0))
+            
+            match.winner_team = "B"
+            match.winner_id = p3.id
+            
+        # 3. Guardar y notificar en tiempo real
+        match.is_finished = True
+        match.score = data.get("res")
         
-        ganador.eternal_points += 10.0; ganador.wins += 1
-        db.add(PointTransaction(player_id=ganador.id, points_earned=10.0))
-        
-        participante.eternal_points += 3.0; participante.losses += 1
-        db.add(PointTransaction(player_id=participante.id, points_earned=3.0))
-        
-        match.is_finished = True; match.score = data.get("res"); match.winner_id = ganador.id
         db.commit()
         await manager.broadcast("update", match.club_id)
+        
+        print(f"{C_VER}[LOOP: PASO 6 - VERIFICANDO ✅] -> Puntos asignados a los 4 jugadores correctamente.{C_END}")
         return {"status": "success"}
     except Exception as e:
+        print(f"❌ Error al finalizar partido: {e}")
         return {"status": "error", "mensaje": str(e)}
 
 @app.get("/tablero")
