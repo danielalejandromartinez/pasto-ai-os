@@ -67,8 +67,10 @@
 </head>
 <body class="min-h-screen pb-40">
 
+    <!-- INPUT INVISIBLE DE SELECCIÓN DE FOTO -->
     <input type="file" id="pwa-photo-input" class="hidden" accept="image/*" onchange="subirFotoPerfil(this)">
 
+    <!-- NAV -->
     <nav class="fixed top-0 w-full z-50 px-6 md:px-12 h-24 flex items-center justify-between backdrop-blur-md border-b border-white/5">
         <div class="flex items-center gap-6">
             <div class="h-10 w-16 rounded-lg overflow-hidden bg-black border border-white/10 shadow-2xl">
@@ -82,6 +84,7 @@
             </div>
         </div>
         <div class="flex gap-2">
+            <button onclick="toggleBooking(true)" class="bg-white/10 border border-white/20 text-white px-4 py-2 rounded-full text-[10px] digital-font hover:bg-white hover:text-black transition-all">RESERVAR</button>
             <button id="nav-action-btn" onclick="openRegistration()" class="bg-brand/10 border border-brand/40 text-brand px-6 py-2 rounded-full text-[10px] digital-font hover:bg-brand hover:text-black transition-all">INGRESAR</button>
         </div>
     </nav>
@@ -151,29 +154,52 @@
         </div>
         {% endif %}
 
-        <!-- 🎴 GRID DE GUERREROS -->
+        <!-- 🎴 GRID DE GUERREROS (REDESIGNED PARA GAMIFICACIÓN TOH) -->
         <div id="player-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-8">
             {% for jugador in jugadores %}
             <div class="player-card-container relative h-[550px] overflow-hidden group cursor-pointer rank-{{ jugador.rank | lower }}" data-category="{{ jugador.categorias[0] }}" onclick="openDossier({{ jugador.id }})">
+                
+                <!-- 🏅 EL SPRINT MENSUAL Y MEDALLAS -->
                 <div class="absolute top-6 right-6 z-20 bg-black/60 backdrop-blur-xl px-4 py-2 rounded-xl border border-white/5 flex flex-col items-end">
-                    <span class="text-[7px] text-white/30 font-bold uppercase tracking-widest">Monthly_XP</span>
-                    <span class="text-brand font-black digital-font text-sm">{{ jugador.monthly_points }}</span>
-                </div>
-                {% if jugador.avatar_url %}<img src="{{ jugador.avatar_url }}" class="absolute inset-0 w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-700">
-                {% else %}<div class="absolute inset-0 bg-zinc-900 flex items-center justify-center opacity-20"><i class="fa-solid fa-user-shield text-6xl"></i></div>{% endif %}
-                <div class="absolute inset-0 flex flex-col justify-end p-8 z-10 bg-gradient-to-t from-black via-black/40 to-transparent">
-                    <span class="text-6xl font-black text-white/10 sport-font italic mb-4">#{{ loop.index }}</span>
-                    <div class="flex justify-between items-end mb-4 w-full">
-                        <div class="text-left">
-                            <span class="text-[7px] text-white/40 digital-font tracking-widest uppercase">Categoría</span>
-                            <span class="block text-sm font-bold text-white digital-font">{{ jugador.categorias[0] }}</span>
-                        </div>
+                    <div class="flex items-center gap-2">
+                        {% if jugador.medals > 0 %}
+                            <span class="text-yellow-400 text-lg">🏅<span class="text-[9px] digital-font">x{{ jugador.medals }}</span></span>
+                        {% endif %}
                         <div class="text-right">
-                            <span class="text-[9px] digital-font text-white/50 uppercase">{{ jugador.rank }}</span>
-                            <span class="block text-2xl font-black text-brand digital-font leading-none">{{ jugador.eternal_points | int }} XP</span>
+                            <span class="text-[7px] text-white/30 font-bold uppercase tracking-widest">MES</span>
+                            <span class="block text-brand font-black digital-font text-sm">{{ jugador.monthly_points }}</span>
                         </div>
                     </div>
-                    <h3 class="text-3xl font-bold sport-font mb-2 truncate">{{ jugador.name }}</h3>
+                </div>
+
+                {% if jugador.avatar_url %}<img src="{{ jugador.avatar_url }}" class="absolute inset-0 w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-700">
+                {% else %}<div class="absolute inset-0 bg-zinc-900 flex items-center justify-center opacity-20"><i class="fa-solid fa-user-shield text-6xl"></i></div>{% endif %}
+                
+                <div class="absolute inset-0 flex flex-col justify-end p-8 z-10 bg-gradient-to-t from-black via-black/40 to-transparent">
+                    <span class="text-6xl font-black text-white/10 sport-font italic mb-2">#{{ loop.index }}</span>
+                    
+                    <!-- 🏆 LA BATALLA DE LA TEMPORADA (Protagonista Central) -->
+                    <div class="flex flex-col items-center mb-6 w-full text-center border-b border-white/10 pb-4">
+                        <span class="text-[9px] text-white/40 digital-font tracking-widest uppercase mb-1">RATING DE TEMPORADA</span>
+                        <span class="text-5xl font-black text-brand digital-font leading-none" style="text-shadow: var(--neon-glow);">{{ jugador.season_points }} <span class="text-lg text-white/50">PTS</span></span>
+                    </div>
+                    
+                    <!-- 🌟 EL EGO Y EL LEGADO HISTÓRICO -->
+                    <h3 class="text-2xl font-bold sport-font truncate w-full mb-1">{{ jugador.name }}</h3>
+                    <div class="flex items-center justify-between w-full">
+                        <div class="flex gap-1 text-yellow-400 text-sm">
+                            {% for i in range(jugador.stars) %}
+                                <i class="fa-solid fa-star" style="filter: drop-shadow(0 0 5px rgba(255,204,0,0.5));"></i>
+                            {% endfor %}
+                            {% if jugador.stars == 0 %}
+                                <span class="text-[8px] digital-font text-white/20">NO STARS</span>
+                            {% endif %}
+                        </div>
+                        <div class="text-right">
+                            <span class="block text-[8px] text-white/30 digital-font uppercase">{{ jugador.rank }}</span>
+                            <span class="block text-[10px] font-bold text-white/50 digital-font">{{ jugador.eternal_points | int }} XP</span>
+                        </div>
+                    </div>
                 </div>
             </div>
             {% endfor %}
@@ -182,7 +208,7 @@
 
     <div id="global-overlay" onclick="closeAllDrawers()"></div>
 
-    <!-- 🛡️ LOBBY DE IDENTIDAD TOH (LOGIN / REGISTRO) -->
+    <!-- 🛡️ LOBBY DE IDENTIDAD TOH (LOGIN / REGISTRO DUAL) -->
     <div id="registration-drawer">
         <div class="max-w-md mx-auto h-full flex flex-col">
             <div class="flex gap-6 border-b border-white/10 pb-4 mb-6">
@@ -466,7 +492,6 @@
             }
         }
 
-        // --- 🤝 FUNCIONES DE RED SOCIAL TOH (DRAFT Y HANDSHAKE) ---
         async function unirseDuelo(matchId, team) {
             const miIdLocal = parseInt(localStorage.getItem('pasto_player_id')) || 0;
 
@@ -510,7 +535,18 @@
             const data = await res.json();
             if (data.status === 'success') {
                 alert(data.mensaje);
-                location.reload();
+                
+                const badge = document.getElementById(`badge-status-${matchId}`);
+                if (badge) {
+                    badge.innerText = "DUELO CONFIRMADO";
+                    badge.style.color = "#00ff88"; 
+                }
+                
+                const actions = document.getElementById(`handshake-actions-${matchId}`);
+                if (actions) actions.style.display = 'none';
+                
+                const goBoardBtn = document.getElementById(`go-board-${matchId}`);
+                if (goBoardBtn) goBoardBtn.style.display = 'block';
             } else {
                 alert("Error: " + data.mensaje);
             }

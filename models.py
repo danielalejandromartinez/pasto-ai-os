@@ -73,7 +73,14 @@ class Player(Base):
     username = Column(String, unique=True, index=True, nullable=True) # Nombre de usuario único
     pin_code = Column(String, nullable=True) # PIN de 4 dígitos para login rápido
     
-    eternal_points = Column(Float, default=0.0) 
+    # 🏆 SISTEMA DE PUNTOS Y GAMIFICACIÓN (NUEVO)
+    eternal_points = Column(Float, default=0.0) # Histórico (XP Eterno)
+    season_points = Column(Float, default=0.0)  # Puntos de Temporada (Se borra en Junio/Diciembre)
+    monthly_points = Column(Float, default=0.0) # Puntos del Mes (Se borra a fin de mes)
+    
+    stars = Column(Integer, default=0) # 🌟 Campeón de Temporada (Eternas)
+    medals = Column(Integer, default=0) # 🏅 Campeón del Mes (Temporales, se borran a fin de temporada)
+    
     prestige_rank = Column(String, default="BRONCE")
     wins = Column(Integer, default=0)
     losses = Column(Integer, default=0)

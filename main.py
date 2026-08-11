@@ -11,7 +11,7 @@ from fastapi.responses import PlainTextResponse, HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
-from sqlalchemy import func, and_, or_
+from sqlalchemy import func, and_, or_, desc
 from dotenv import load_dotenv
 
 # --- ÓRGANOS DEL AGENTE ---
@@ -182,7 +182,7 @@ async def subir_foto_perfil_toh(
         return {"status": "error", "mensaje": str(e)}
 
 # ============================================================
-# ⚔️ API: LANZAR DESAFÍO TÁCTICO (TAP-TO-DUEL - STEP 4)
+# ⚔️ API: LANZAR DESAFÍO TÁCTICO (TAP-TO-DUEL)
 # ============================================================
 @app.post("/api/challenge/create")
 async def lanzar_desafio_pwa(request: Request, db: Session = Depends(get_db)):
@@ -238,37 +238,31 @@ async def aceptar_desafio_toh(match_id: int, db: Session = Depends(get_db)):
         return {"status": "error", "mensaje": str(e)}
 
 # ============================================================
-# 🤝 NUEVA API: UNIRSE AL DRAFT ABIERTO (LA RED SOCIAL TOH)
+# 🤝 API: UNIRSE AL DRAFT ABIERTO (LA RED SOCIAL TOH)
 # ============================================================
 @app.post("/api/challenge/join/{match_id}")
 async def unirse_desafio_toh(match_id: int, request: Request, db: Session = Depends(get_db)):
     try:
         data = await request.json()
         player_id = int(data.get("player_id"))
-        team = data.get("team") # "A" para acompañar al Retador, "B" para acompañar al Retado
+        team = data.get("team") 
 
         print(f"\n{C_OBS}[LOOP: PASO 1 - OBSERVANDO 👁️] -> Jugador {player_id} solicitando silla en Match {match_id} (Equipo {team}){C_END}")
 
         match = db.query(Match).filter(Match.id == match_id).first()
         if not match: return {"status": "error", "mensaje": "Duelo no localizado."}
         
-        # 1. Seguridad: Verificar que el jugador no esté ya en el partido
         if player_id in [match.player_1_id, match.player_2_id, match.player_3_id, match.player_4_id]:
             return {"status": "error", "mensaje": "Ya tienes una silla reservada en esta batalla."}
 
         print(f"{C_EXE}[LOOP: PASO 5 - EJECUTANDO ⚡] -> Asignando asiento en el Draft...{C_END}")
         
-        # 2. Lógica de Asignación de Sillas Vacías
         if team == "A":
-            if match.player_2_id is None:
-                match.player_2_id = player_id
-            else:
-                return {"status": "error", "mensaje": "La pareja de este jugador ya está completa."}
+            if match.player_2_id is None: match.player_2_id = player_id
+            else: return {"status": "error", "mensaje": "La pareja de este jugador ya está completa."}
         elif team == "B":
-            if match.player_4_id is None:
-                match.player_4_id = player_id
-            else:
-                return {"status": "error", "mensaje": "La pareja de este jugador ya está completa."}
+            if match.player_4_id is None: match.player_4_id = player_id
+            else: return {"status": "error", "mensaje": "La pareja de este jugador ya está completa."}
         else:
             return {"status": "error", "mensaje": "Equipo no válido."}
 
@@ -387,49 +381,134 @@ async def actualizar_configuracion_club(club_id: int, request: Request, db: Sess
     except Exception as e:
         return {"status": "error", "mensaje": str(e)}
 
-@app.post("/api/admin/match/finish")
-async def finalizar_partido_manual(request: Request, db: Session = Depends(get_db)):
+# ============================================================
+# 🏆 NUEVAS APIS: CIERRE DE CICLOS Y GAMIFICACIÓN (TOH ADMIN)
+# ============================================================
+@app.post("/api/admin/close-month/{club_id}")
+async def cerrar_mes(club_id: int, db: Session = Depends(get_db)):
+    """ Reparte medallas a los líderes de cada categoría y resetea los puntos mensuales a cero. """
     try:
-        data = await request.json()
-        club_id = int(data.get("club_id"))
+        print(f"\n{C_PLA}[LOOP: PASO 4 - PLANIFICAR 📋] -> Iniciando Cierre de Mes (Club ID: {club_id}){C_END}")
         
-        jugadores = db.query(Player).filter_by(club_id=club_id).all()
-        p1 = next((p for p in jugadores if _norm(p.name) == _norm(data.get("p1"))), None)
-        p2 = next((p for p in jugadores if _norm(p.name) == _norm(data.get("p2"))), None) if data.get("p2") else None
-        p3 = next((p for p in jugadores if _norm(p.name) == _norm(data.get("p3"))), None)
-        p4 = next((p for p in jugadores if _norm(p.name) == _norm(data.get("p4"))), None) if data.get("p4") else None
-        
-        if not p1 or not p3:
-            return {"status": "error", "mensaje": "No encuentro al Jugador 1 o al Rival 1."}
-            
-        ganador_team = data.get("ganador")
-        
-        if ganador_team == "A":
-            p1.eternal_points += 10.0; p1.wins += 1
-            db.add(PointTransaction(player_id=p1.id, points_earned=10.0))
-            if p2: p2.eternal_points += 10.0; p2.wins += 1; db.add(PointTransaction(player_id=p2.id, points_earned=10.0))
-            
-            p3.eternal_points += 3.0; p3.losses += 1; db.add(PointTransaction(player_id=p3.id, points_earned=3.0))
-            if p4: p4.eternal_points += 3.0; p4.losses += 1; db.add(PointTransaction(player_id=p4.id, points_earned=3.0))
-        else:
-            p3.eternal_points += 10.0; p3.wins += 1; db.add(PointTransaction(player_id=p3.id, points_earned=10.0))
-            if p4: p4.eternal_points += 10.0; p4.wins += 1; db.add(PointTransaction(player_id=p4.id, points_earned=10.0))
-            
-            p1.eternal_points += 3.0; p1.losses += 1; db.add(PointTransaction(player_id=p1.id, points_earned=3.0))
-            if p2: p2.eternal_points += 3.0; p2.losses += 1; db.add(PointTransaction(player_id=p2.id, points_earned=3.0))
-            
-        nuevo_match = Match(
-            player_1_id=p1.id, player_2_id=p2.id if p2 else p1.id,
-            player_3_id=p3.id, player_4_id=p4.id if p4 else p3.id,
-            club_id=club_id, score=data.get("score"), is_finished=True,
-            is_confirmed=True 
-        )
-        db.add(nuevo_match)
+        categorias = db.query(Category).filter(Category.club_id == club_id).all()
+        campeones_nombres = []
+
+        for categoria in categorias:
+            # Buscamos al jugador con más puntos mensuales en esta categoría
+            lider = db.query(Player).filter(
+                and_(Player.club_id == club_id, Player.is_approved == True, Player.player_categories_list.any(id=categoria.id))
+            ).order_by(desc(Player.monthly_points)).first()
+
+            if lider and lider.monthly_points > 0:
+                lider.medals += 1
+                campeones_nombres.append(f"{lider.name} ({categoria.name})")
+
+        # Resetear todos los puntos mensuales del club a 0
+        jugadores = db.query(Player).filter(Player.club_id == club_id).all()
+        for j in jugadores:
+            j.monthly_points = 0.0
+
         db.commit()
         await manager.broadcast("update", club_id)
-        return {"status": "success", "mensaje": "Resultado procesado en el ranking."}
+        
+        resumen = ", ".join(campeones_nombres) if campeones_nombres else "Nadie sumó puntos este mes."
+        return {"status": "success", "mensaje": f"Cierre de mes completado. Medallas entregadas a: {resumen}"}
     except Exception as e:
+        print(f"❌ Error Cerrando Mes: {e}")
         return {"status": "error", "mensaje": str(e)}
+
+@app.post("/api/admin/close-season/{club_id}")
+async def cerrar_temporada(club_id: int, db: Session = Depends(get_db)):
+    """ Reparte estrellas a los líderes de temporada y resetea puntos y medallas a cero. """
+    try:
+        print(f"\n{C_PLA}[LOOP: PASO 4 - PLANIFICAR 📋] -> Iniciando Cierre de Temporada (Club ID: {club_id}){C_END}")
+        
+        categorias = db.query(Category).filter(Category.club_id == club_id).all()
+        campeones_nombres = []
+
+        for categoria in categorias:
+            lider = db.query(Player).filter(
+                and_(Player.club_id == club_id, Player.is_approved == True, Player.player_categories_list.any(id=categoria.id))
+            ).order_by(desc(Player.season_points)).first()
+
+            if lider and lider.season_points > 0:
+                lider.stars += 1
+                campeones_nombres.append(f"{lider.name} ({categoria.name})")
+
+        # Resetear puntos de temporada, puntos de mes y medallas a 0
+        jugadores = db.query(Player).filter(Player.club_id == club_id).all()
+        for j in jugadores:
+            j.season_points = 0.0
+            j.monthly_points = 0.0
+            j.medals = 0
+
+        db.commit()
+        await manager.broadcast("update", club_id)
+        
+        resumen = ", ".join(campeones_nombres) if campeones_nombres else "Nadie sumó puntos esta temporada."
+        return {"status": "success", "mensaje": f"¡Cierre de temporada completado! Estrellas eternas entregadas a: {resumen}"}
+    except Exception as e:
+        print(f"❌ Error Cerrando Temporada: {e}")
+        return {"status": "error", "mensaje": str(e)}
+
+# ============================================================
+# 📡 API: FINALIZAR PARTIDO DE PADEL DESDE EL TABLERO (10/3 A 4 JUGADORES)
+# ============================================================
+@app.post("/api/match/finish")
+async def finalizar_partido(request: Request, db: Session = Depends(get_db)):
+    try:
+        data = await request.json()
+        winner_name = data.get("ganador")
+        match_id = data.get("matchId")
+        
+        match = db.query(Match).filter(Match.id == match_id).first()
+        if not match: return {"status": "error", "mensaje": "Duelo no localizado."}
+        
+        p1, p2 = match.player_1, match.player_2
+        p3, p4 = match.p3, match.p4
+        winner_norm = _norm(winner_name)
+        
+        print(f"\n{C_EXE}[LOOP: PASO 5 - EJECUTANDO ⚡] -> Repartiendo gloria y puntos en la Arena...{C_END}")
+        
+        nombre_p1_corto = _norm(p1.name.split(' ')[0]) if p1 else ""
+        
+        if nombre_p1_corto in winner_norm: 
+            # 🏆 GANÓ EL EQUIPO A (P1 y P2)
+            # Sumamos a todos los buckets: eternal, season y monthly
+            p1.eternal_points += 10.0; p1.season_points += 10.0; p1.monthly_points += 10.0; p1.wins += 1
+            if p2: p2.eternal_points += 10.0; p2.season_points += 10.0; p2.monthly_points += 10.0; p2.wins += 1
+            
+            p3.eternal_points += 3.0; p3.season_points += 3.0; p3.monthly_points += 3.0; p3.losses += 1
+            if p4: p4.eternal_points += 3.0; p4.season_points += 3.0; p4.monthly_points += 3.0; p4.losses += 1
+            
+            match.winner_team = "A"
+            match.winner_id = p1.id
+        else: 
+            # 🏆 GANÓ EL EQUIPO B (P3 y P4)
+            p3.eternal_points += 10.0; p3.season_points += 10.0; p3.monthly_points += 10.0; p3.wins += 1
+            if p4: p4.eternal_points += 10.0; p4.season_points += 10.0; p4.monthly_points += 10.0; p4.wins += 1
+            
+            p1.eternal_points += 3.0; p1.season_points += 3.0; p1.monthly_points += 3.0; p1.losses += 1
+            if p2: p2.eternal_points += 3.0; p2.season_points += 3.0; p2.monthly_points += 3.0; p2.losses += 1
+            
+            match.winner_team = "B"
+            match.winner_id = p3.id
+            
+        match.is_finished = True
+        match.score = data.get("res")
+        
+        db.commit()
+        await manager.broadcast("update", match.club_id)
+        
+        print(f"{C_VER}[LOOP: PASO 6 - VERIFICANDO ✅] -> Puntos asignados a los 4 jugadores correctamente.{C_END}")
+        return {"status": "success"}
+    except Exception as e:
+        print(f"❌ Error al finalizar partido: {e}")
+        return {"status": "error", "mensaje": str(e)}
+
+@app.get("/tablero")
+async def ver_tablero(request: Request):
+    return templates.TemplateResponse("tablero.html", {"request": request})
 
 # ============================================================
 # 📺 VISTA WEB: EL MURO DE LA FAMA (CONFIG-DRIVEN)
@@ -452,26 +531,23 @@ async def ver_club(request: Request, club_id: int, db: Session = Depends(get_db)
         
         jugadores_raw = db.query(Player).filter(and_(Player.club_id == club_id, Player.is_approved == True)).all()
         
-        ahora = datetime.now()
-        primer_dia_mes = ahora.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-        
         jugadores_procesados = []
         for p in jugadores_raw:
-            puntos_mes = db.query(func.sum(PointTransaction.points_earned)).filter(
-                and_(PointTransaction.player_id == p.id, PointTransaction.timestamp >= primer_dia_mes)
-            ).scalar() or 0
-            
             mis_categorias = [c.name for c in p.player_categories_list]
             if not mis_categorias: mis_categorias = ["General"]
             jugadores_procesados.append({
-                "id": p.id, "name": p.name, "avatar_url": p.avatar_url, "eternal_points": int(p.eternal_points),
-                "monthly_points": int(puntos_mes),
-                "stars": 0,
+                "id": p.id, "name": p.name, "avatar_url": p.avatar_url, 
+                "eternal_points": int(p.eternal_points),
+                "season_points": int(p.season_points),
+                "monthly_points": int(p.monthly_points),
+                "stars": p.stars,
+                "medals": p.medals,
                 "categorias": mis_categorias, "rank": p.prestige_rank
             })
 
+        # ORDENAR POR PUNTOS DE TEMPORADA (Regla de Oro de Gamificación TOH)
+        jugadores_procesados.sort(key=lambda x: x["season_points"], reverse=True)
         retos_db = db.query(Match).filter(Match.is_finished == False).all()
-        jugadores_procesados.sort(key=lambda x: x["eternal_points"], reverse=True)
 
         return templates.TemplateResponse("ranking.html", {
             "request": request, "jugadores": jugadores_procesados, "retos": retos_db, 
@@ -519,67 +595,6 @@ async def obtener_expediente_tactico(player_id: int, db: Session = Depends(get_d
     except Exception as e:
         print(f"❌ Error en Expediente: {e}")
         return {"status": "error", "mensaje": str(e)}
-
-# ============================================================
-# 📡 API: FINALIZAR PARTIDO DE PADEL DESDE EL TABLERO (10/3 A 4 JUGADORES)
-# ============================================================
-@app.post("/api/match/finish")
-async def finalizar_partido(request: Request, db: Session = Depends(get_db)):
-    try:
-        data = await request.json()
-        winner_name = data.get("ganador")
-        match_id = data.get("matchId")
-        
-        match = db.query(Match).filter(Match.id == match_id).first()
-        if not match: return {"status": "error", "mensaje": "Duelo no localizado."}
-        
-        # 1. Traemos a los 4 guerreros de la base de datos
-        p1, p2 = match.player_1, match.player_2
-        p3, p4 = match.p3, match.p4
-        winner_norm = _norm(winner_name)
-        
-        print(f"\n{C_EXE}[LOOP: PASO 5 - EJECUTANDO ⚡] -> Repartiendo gloria y puntos en la Arena...{C_END}")
-        
-        # 2. Determinamos qué equipo ganó (Revisamos si el nombre del Capitán A está en el texto del ganador)
-        nombre_p1_corto = _norm(p1.name.split(' ')[0]) if p1 else ""
-        
-        if nombre_p1_corto in winner_norm: 
-            # 🏆 GANÓ EL EQUIPO A (P1 y P2)
-            p1.eternal_points += 10.0; p1.wins += 1; db.add(PointTransaction(player_id=p1.id, points_earned=10.0))
-            if p2: p2.eternal_points += 10.0; p2.wins += 1; db.add(PointTransaction(player_id=p2.id, points_earned=10.0))
-            
-            p3.eternal_points += 3.0; p3.losses += 1; db.add(PointTransaction(player_id=p3.id, points_earned=3.0))
-            if p4: p4.eternal_points += 3.0; p4.losses += 1; db.add(PointTransaction(player_id=p4.id, points_earned=3.0))
-            
-            match.winner_team = "A"
-            match.winner_id = p1.id
-        else: 
-            # 🏆 GANÓ EL EQUIPO B (P3 y P4)
-            p3.eternal_points += 10.0; p3.wins += 1; db.add(PointTransaction(player_id=p3.id, points_earned=10.0))
-            if p4: p4.eternal_points += 10.0; p4.wins += 1; db.add(PointTransaction(player_id=p4.id, points_earned=10.0))
-            
-            p1.eternal_points += 3.0; p1.losses += 1; db.add(PointTransaction(player_id=p1.id, points_earned=3.0))
-            if p2: p2.eternal_points += 3.0; p2.losses += 1; db.add(PointTransaction(player_id=p2.id, points_earned=3.0))
-            
-            match.winner_team = "B"
-            match.winner_id = p3.id
-            
-        # 3. Guardar y notificar en tiempo real
-        match.is_finished = True
-        match.score = data.get("res")
-        
-        db.commit()
-        await manager.broadcast("update", match.club_id)
-        
-        print(f"{C_VER}[LOOP: PASO 6 - VERIFICANDO ✅] -> Puntos asignados a los 4 jugadores correctamente.{C_END}")
-        return {"status": "success"}
-    except Exception as e:
-        print(f"❌ Error al finalizar partido: {e}")
-        return {"status": "error", "mensaje": str(e)}
-
-@app.get("/tablero")
-async def ver_tablero(request: Request):
-    return templates.TemplateResponse("tablero.html", {"request": request})
 
 # ============================================================
 # 🛡️ RESET NUCLEAR: LIENZO EN BLANCO (SOCIOS VACÍOS)

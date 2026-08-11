@@ -11,6 +11,7 @@
     <style>
         :root {
             --brand-color: #00f2ff;
+            --gold-color: #ffcc00;
             --glass-bg: rgba(255, 255, 255, 0.02);
             --glass-border: rgba(255, 255, 255, 0.08);
         }
@@ -44,6 +45,14 @@
             clip-path: polygon(10% 0, 100% 0, 100% 70%, 90% 100%, 0 100%, 0 30%);
         }
         .btn-cyber:hover { background: var(--brand-color); color: black; box-shadow: 0 0 20px var(--brand-color); }
+        
+        .btn-gold {
+            background: rgba(0, 0, 0, 0.6); border: 1px solid var(--gold-color); color: var(--gold-color);
+            padding: 15px 30px; font-family: 'Orbitron'; font-size: 11px; font-weight: 900;
+            text-transform: uppercase; letter-spacing: 2px; cursor: pointer; transition: 0.3s;
+            clip-path: polygon(10% 0, 100% 0, 100% 70%, 90% 100%, 0 100%, 0 30%);
+        }
+        .btn-gold:hover { background: var(--gold-color); color: black; box-shadow: 0 0 20px var(--gold-color); }
     </style>
 </head>
 <body class="min-h-screen pb-40">
@@ -129,23 +138,35 @@
             </div>
         </div>
 
-        <!-- ⚙️ PANEL 3: CONFIGURACIÓN AUTOGESTIONABLE DEL CLUB -->
-        <div class="glass-panel h-fit">
-            <h2 class="text-xl font-bold sport-font mb-6 text-brand"><i class="fa-solid fa-sliders"></i> Personalizar Club</h2>
-            <div class="flex flex-col gap-4">
-                <div>
-                    <span class="label-mini block mb-2">Nombre del Club</span>
-                    <input type="text" id="club-name" class="input-cyber" value="{{ club.name }}">
+        <div class="flex flex-col gap-6">
+            <!-- ⚙️ PANEL 3: CONFIGURACIÓN AUTOGESTIONABLE DEL CLUB -->
+            <div class="glass-panel h-fit">
+                <h2 class="text-xl font-bold sport-font mb-6 text-brand"><i class="fa-solid fa-sliders"></i> Personalizar Club</h2>
+                <div class="flex flex-col gap-4">
+                    <div>
+                        <span class="label-mini block mb-2">Nombre del Club</span>
+                        <input type="text" id="club-name" class="input-cyber" value="{{ club.name }}">
+                    </div>
+                    <div>
+                        <span class="label-mini block mb-2">Color Primario (Hexadecimal)</span>
+                        <input type="text" id="club-color" class="input-cyber" value="{{ settings.primary_color | default('#00f2ff') }}">
+                    </div>
+                    <div>
+                        <span class="label-mini block mb-2">URL del Logo</span>
+                        <input type="text" id="club-logo" class="input-cyber" value="{{ settings.logo_url | default('/static/logo_pasto.jpg') }}">
+                    </div>
+                    <button onclick="guardarConfiguracion()" class="btn-cyber w-full mt-4">Guardar Cambios 💾</button>
                 </div>
-                <div>
-                    <span class="label-mini block mb-2">Color Primario (Hexadecimal)</span>
-                    <input type="text" id="club-color" class="input-cyber" value="{{ settings.primary_color | default('#00f2ff') }}">
+            </div>
+
+            <!-- 🏆 PANEL 4: CIERRE DE CICLOS Y GAMIFICACIÓN -->
+            <div class="glass-panel h-fit">
+                <h2 class="text-xl font-bold sport-font mb-6" style="color: var(--gold-color);"><i class="fa-solid fa-crown"></i> Gamificación (Cierres)</h2>
+                <p class="text-xs text-white/50 mb-6 font-medium">Atención: Cerrar el ciclo repartirá las recompensas y pondrá los puntos en cero. Esta acción no se puede deshacer.</p>
+                <div class="flex flex-col gap-4">
+                    <button onclick="cerrarMes()" class="btn-cyber w-full">🏆 CERRAR MES (Medallas)</button>
+                    <button onclick="cerrarTemporada()" class="btn-gold w-full">🌟 CERRAR TEMPORADA (Estrellas)</button>
                 </div>
-                <div>
-                    <span class="label-mini block mb-2">URL del Logo</span>
-                    <input type="text" id="club-logo" class="input-cyber" value="{{ settings.logo_url | default('/static/logo_pasto.jpg') }}">
-                </div>
-                <button onclick="guardarConfiguracion()" class="btn-cyber w-full mt-4">Guardar Cambios 💾</button>
             </div>
         </div>
 
@@ -212,6 +233,32 @@
             if (data.status === 'success') {
                 alert("Configuración del club guardada con éxito.");
                 location.reload();
+            } else {
+                alert("Error: " + data.mensaje);
+            }
+        }
+
+        async function cerrarMes() {
+            if (!confirm("⚠️ ¿Estás totalmente seguro de cerrar el Mes? Se entregarán medallas a los #1 y los puntos mensuales volverán a cero.")) return;
+            
+            const res = await fetch(`/api/admin/close-month/${clubId}`, { method: 'POST' });
+            const data = await res.json();
+            
+            if (data.status === 'success') {
+                alert(data.mensaje);
+            } else {
+                alert("Error: " + data.mensaje);
+            }
+        }
+
+        async function cerrarTemporada() {
+            if (!confirm("🚨 ATENCIÓN EXTREMA: ¿Deseas cerrar la Temporada Semestral? Se entregarán ESTRELLAS DORADAS a los #1 de cada categoría y los puntos (Mes y Temporada) volverán a cero. Esta acción no se puede deshacer.")) return;
+            
+            const res = await fetch(`/api/admin/close-season/${clubId}`, { method: 'POST' });
+            const data = await res.json();
+            
+            if (data.status === 'success') {
+                alert(data.mensaje);
             } else {
                 alert("Error: " + data.mensaje);
             }
