@@ -159,7 +159,12 @@
             {% for jugador in jugadores %}
             <div class="player-card-container relative h-[550px] overflow-hidden group cursor-pointer rank-{{ jugador.rank | lower }}" data-category="{{ jugador.categorias[0] }}" onclick="openDossier({{ jugador.id }})">
                 
-                <!-- 🏅 EL SPRINT MENSUAL Y MEDALLAS -->
+                <!-- 1. PUESTO # (Superior Izquierda - AUTORIDAD) -->
+                <div class="absolute top-6 left-6 z-20">
+                    <span class="text-6xl font-black text-brand sport-font italic opacity-90" style="text-shadow: 0 0 10px rgba(0, 242, 255, 0.5);">#{{ loop.index }}</span>
+                </div>
+
+                <!-- 2. RATING MENSUAL Y MEDALLAS -->
                 <div class="absolute top-6 right-6 z-20 bg-black/60 backdrop-blur-xl px-4 py-2 rounded-xl border border-white/5 flex flex-col items-end">
                     <div class="flex items-center gap-2">
                         {% if jugador.medals > 0 %}
@@ -176,15 +181,14 @@
                 {% else %}<div class="absolute inset-0 bg-zinc-900 flex items-center justify-center opacity-20"><i class="fa-solid fa-user-shield text-6xl"></i></div>{% endif %}
                 
                 <div class="absolute inset-0 flex flex-col justify-end p-8 z-10 bg-gradient-to-t from-black via-black/40 to-transparent">
-                    <span class="text-6xl font-black text-white/10 sport-font italic mb-2">#{{ loop.index }}</span>
                     
-                    <!-- 🏆 LA BATALLA DE LA TEMPORADA (Protagonista Central) -->
+                    <!-- 3. RATING TEMPORADA (Protagonista Central) -->
                     <div class="flex flex-col items-center mb-6 w-full text-center border-b border-white/10 pb-4">
                         <span class="text-[9px] text-white/40 digital-font tracking-widest uppercase mb-1">RATING DE TEMPORADA</span>
                         <span class="text-5xl font-black text-brand digital-font leading-none" style="text-shadow: var(--neon-glow);">{{ jugador.season_points }} <span class="text-lg text-white/50">PTS</span></span>
                     </div>
                     
-                    <!-- 🌟 EL EGO Y EL LEGADO HISTÓRICO -->
+                    <!-- 4. NOMBRE Y LEGADO -->
                     <h3 class="text-2xl font-bold sport-font truncate w-full mb-1">{{ jugador.name }}</h3>
                     <div class="flex items-center justify-between w-full">
                         <div class="flex gap-1 text-yellow-400 text-sm">
