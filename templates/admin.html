@@ -73,9 +73,9 @@
 
     <div class="max-w-[1200px] mx-auto px-6 grid grid-cols-1 lg:grid-cols-3 gap-8">
         
-        <!-- 🛡️ PANEL 1: MESA DE ADMISIONES (CONTROL DE SOCIOS) -->
         <div class="lg:col-span-2 flex flex-col gap-6">
-            <div class="glass-panel flex-1">
+            <!-- 🛡️ PANEL 1: MESA DE ADMISIONES (CONTROL DE SOCIOS) -->
+            <div class="glass-panel">
                 <h2 class="text-xl font-bold sport-font mb-6 text-brand"><i class="fa-solid fa-user-shield"></i> Admisiones Pendientes</h2>
                 
                 <div id="admisiones-list" class="flex flex-col gap-4">
@@ -98,11 +98,39 @@
                 </div>
             </div>
 
+            <!-- 👥 PANEL 5: GESTOR DE JUGADORES ACTIVOS (NUEVO) -->
+            <div class="glass-panel">
+                <h2 class="text-xl font-bold sport-font mb-6 text-brand"><i class="fa-solid fa-users-gear"></i> Gestión de Jugadores Activos</h2>
+                <div class="flex flex-col gap-4 max-h-[400px] overflow-y-auto pr-2">
+                    {% if activos %}
+                        {% for jugador in activos %}
+                        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 rounded-xl bg-white/5 border border-white/10 gap-3">
+                            <div>
+                                <h3 class="font-bold text-base text-white">{{ jugador.name }}</h3>
+                                <span class="text-[10px] text-brand digital-font uppercase">Puntos: {{ jugador.season_points | int }} PTS | XP: {{ jugador.eternal_points | int }}</span>
+                            </div>
+                            <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+                                <!-- Desplegable de cambio de categoría -->
+                                <select onchange="cambiarCategoria({{ jugador.id }}, this.value)" class="bg-black/60 border border-white/20 text-white text-xs rounded-lg px-2 py-1 outline-none">
+                                    {% for cat in categorias %}
+                                        <option value="{{ cat.name }}" {% if jugador.player_categories_list and jugador.player_categories_list[0].name == cat.name %}selected{% endif %}>{{ cat.name }}</option>
+                                    {% endfor %}
+                                </select>
+                                <button onclick="reiniciarPuntos({{ jugador.id }})" class="bg-yellow-500/20 text-yellow-400 border border-yellow-500/40 px-3 py-1 rounded-lg text-[10px] font-bold hover:bg-yellow-500 hover:text-black transition-all">REINICIAR</button>
+                                <button onclick="eliminarJugador({{ jugador.id }})" class="bg-red-500/20 text-red-400 border border-red-500/40 px-3 py-1 rounded-lg text-[10px] font-bold hover:bg-red-500 hover:text-black transition-all">ELIMINAR</button>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <p class="text-white/30 text-center text-sm py-8 italic font-medium">No hay jugadores activos registrados.</p>
+                    {% endif %}
+                </div>
+            </div>
+
             <!-- 🏟️ PANEL 2: TRANSMISOR DE RESULTADOS DE PADEL -->
             <div class="glass-panel">
                 <h2 class="text-xl font-bold sport-font mb-6 text-brand"><i class="fa-solid fa-trophy"></i> Transmisor de Marcadores</h2>
                 <div class="grid grid-cols-2 gap-4 mb-4">
-                    <!-- PAREJA A -->
                     <div>
                         <span class="label-mini block mb-2">Pareja A - Jugador 1</span>
                         <input type="text" id="p1-name" class="input-cyber" placeholder="Daniel">
@@ -111,7 +139,6 @@
                         <span class="label-mini block mb-2">Pareja A - Jugador 2</span>
                         <input type="text" id="p2-name" class="input-cyber" placeholder="Fernando (Opcional)">
                     </div>
-                    <!-- PAREJA B -->
                     <div class="mt-2">
                         <span class="label-mini block mb-2">Pareja B - Jugador 1</span>
                         <input type="text" id="p3-name" class="input-cyber" placeholder="Paula">
@@ -181,6 +208,49 @@
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({ aprobado: aprobar })
             });
+            const data = await res.json();
+            if (data.status === 'success') {
+                alert(data.mensaje);
+                location.reload();
+            } else {
+                alert("Error: " + data.mensaje);
+            }
+        }
+
+        async function cambiarCategoria(jugadorId, nuevaCat) {
+            if (!confirm(`¿Deseas mover a este jugador a la ${nuevaCat}? Iniciará con 0 PTS en la nueva categoría pero mantendrá su historial.`)) return;
+            
+            const res = await fetch(`/api/admin/player/change-category/${jugadorId}`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ nueva_categoria: nuevaCat })
+            });
+            const data = await res.json();
+            if (data.status === 'success') {
+                alert(data.mensaje);
+                location.reload();
+            } else {
+                alert("Error: " + data.mensaje);
+            }
+        }
+
+        async function reiniciarPuntos(jugadorId) {
+            if (!confirm("⚠️ ¿Deseas reiniciar los puntos de temporada y mes de este jugador a cero?")) return;
+            
+            const res = await fetch(`/api/admin/player/reset/${jugadorId}`, { method: 'POST' });
+            const data = await res.json();
+            if (data.status === 'success') {
+                alert(data.mensaje);
+                location.reload();
+            } else {
+                alert("Error: " + data.mensaje);
+            }
+        }
+
+        async function eliminarJugador(jugadorId) {
+            if (!confirm("🚨 ATENCIÓN: ¿Deseas eliminar permanentemente el perfil de este jugador?")) return;
+            
+            const res = await fetch(`/api/admin/player/delete/${jugadorId}`, { method: 'POST' });
             const data = await res.json();
             if (data.status === 'success') {
                 alert(data.mensaje);

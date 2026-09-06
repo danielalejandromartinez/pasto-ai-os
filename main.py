@@ -336,8 +336,17 @@ async def ver_dashboard_admin(request: Request, club_id: int, db: Session = Depe
     
     pendientes = db.query(Player).filter(and_(Player.club_id == club_id, Player.is_approved == False)).all()
     
+    # 🆕 APORTES DE CONTROL QUIRÚRGICO: Traemos a los jugadores activos para el gestor
+    activos = db.query(Player).filter(and_(Player.club_id == club_id, Player.is_approved == True)).all()
+    categorias = db.query(Category).filter(Category.club_id == club_id).all()
+    
     return templates.TemplateResponse("admin.html", {
-        "request": request, "club": club, "pendientes": pendientes, "settings": club.settings or {}
+        "request": request, 
+        "club": club, 
+        "pendientes": pendientes, 
+        "activos": activos, 
+        "categorias": categorias, 
+        "settings": club.settings or {}
     })
 
 @app.post("/api/admin/approve/{player_id}")
@@ -358,6 +367,62 @@ async def aprobar_jugador(player_id: int, request: Request, db: Session = Depend
             db.delete(jugador)
             db.commit()
             return {"status": "success", "mensaje": "Solicitud de admisión rechazada."}
+    except Exception as e:
+        return {"status": "error", "mensaje": str(e)}
+
+# 🆕 NUEVA API: REINICIAR PUNTOS DE UN JUGADOR ESPECÍFICO
+@app.post("/api/admin/player/reset/{player_id}")
+async def reiniciar_puntos_jugador(player_id: int, db: Session = Depends(get_db)):
+    try:
+        jugador = db.query(Player).filter(Player.id == player_id).first()
+        if not jugador: return {"status": "error", "mensaje": "Jugador no localizado."}
+        
+        jugador.monthly_points = 0.0
+        jugador.season_points = 0.0
+        db.commit()
+        await manager.broadcast("update", jugador.club_id)
+        return {"status": "success", "mensaje": f"Puntos de temporada y mes de {jugador.name} puestos a cero."}
+    except Exception as e:
+        return {"status": "error", "mensaje": str(e)}
+
+# 🆕 NUEVA API: ELIMINAR PERFIL DE UN JUGADOR ESPECÍFICO
+@app.post("/api/admin/player/delete/{player_id}")
+async def eliminar_jugador_admin(player_id: int, db: Session = Depends(get_db)):
+    try:
+        jugador = db.query(Player).filter(Player.id == player_id).first()
+        if not jugador: return {"status": "error", "mensaje": "Jugador no localizado."}
+        
+        club_id = jugador.club_id
+        db.delete(jugador)
+        db.commit()
+        await manager.broadcast("update", club_id)
+        return {"status": "success", "mensaje": "Perfil de jugador eliminado con éxito de la Arena."}
+    except Exception as e:
+        return {"status": "error", "mensaje": str(e)}
+
+# 🆕 NUEVA API: CAMBIAR DE CATEGORÍA CON REGLA DE ORO DE ASCENSO/DESCENTO
+@app.post("/api/admin/player/change-category/{player_id}")
+async def cambiar_categoria_jugador(player_id: int, request: Request, db: Session = Depends(get_db)):
+    try:
+        data = await request.json()
+        nueva_cat_nombre = data.get("nueva_categoria")
+        
+        jugador = db.query(Player).filter(Player.id == player_id).first()
+        if not jugador: return {"status": "error", "mensaje": "Jugador no localizado."}
+        
+        cat_nueva = db.query(Category).filter(and_(Category.club_id == jugador.club_id, Category.name == nueva_cat_nombre)).first()
+        if not cat_nueva: return {"status": "error", "mensaje": "Categoría destino no encontrada."}
+        
+        # 1. Asignamos la nueva categoría en la relación Many-to-Many
+        jugador.player_categories_list = [cat_nueva]
+        
+        # 2. REGLA DE ORO: Mantiene su XP Histórico, Estrellas y Medallas, pero inicia a 0 en la nueva división
+        jugador.monthly_points = 0.0
+        jugador.season_points = 0.0
+        
+        db.commit()
+        await manager.broadcast("update", jugador.club_id)
+        return {"status": "success", "mensaje": f"{jugador.name} ha sido movido a {nueva_cat_nombre}. Inicia con 0 PTS de temporada."}
     except Exception as e:
         return {"status": "error", "mensaje": str(e)}
 
@@ -394,7 +459,6 @@ async def cerrar_mes(club_id: int, db: Session = Depends(get_db)):
         campeones_nombres = []
 
         for categoria in categorias:
-            # Buscamos al jugador con más puntos mensuales en esta categoría
             lider = db.query(Player).filter(
                 and_(Player.club_id == club_id, Player.is_approved == True, Player.player_categories_list.any(id=categoria.id))
             ).order_by(desc(Player.monthly_points)).first()
@@ -403,7 +467,6 @@ async def cerrar_mes(club_id: int, db: Session = Depends(get_db)):
                 lider.medals += 1
                 campeones_nombres.append(f"{lider.name} ({categoria.name})")
 
-        # Resetear todos los puntos mensuales del club a 0
         jugadores = db.query(Player).filter(Player.club_id == club_id).all()
         for j in jugadores:
             j.monthly_points = 0.0
@@ -435,7 +498,6 @@ async def cerrar_temporada(club_id: int, db: Session = Depends(get_db)):
                 lider.stars += 1
                 campeones_nombres.append(f"{lider.name} ({categoria.name})")
 
-        # Resetear puntos de temporada, puntos de mes y medallas a 0
         jugadores = db.query(Player).filter(Player.club_id == club_id).all()
         for j in jugadores:
             j.season_points = 0.0
@@ -473,8 +535,6 @@ async def finalizar_partido(request: Request, db: Session = Depends(get_db)):
         nombre_p1_corto = _norm(p1.name.split(' ')[0]) if p1 else ""
         
         if nombre_p1_corto in winner_norm: 
-            # 🏆 GANÓ EL EQUIPO A (P1 y P2)
-            # Sumamos a todos los buckets: eternal, season y monthly
             p1.eternal_points += 10.0; p1.season_points += 10.0; p1.monthly_points += 10.0; p1.wins += 1
             if p2: p2.eternal_points += 10.0; p2.season_points += 10.0; p2.monthly_points += 10.0; p2.wins += 1
             
@@ -484,7 +544,6 @@ async def finalizar_partido(request: Request, db: Session = Depends(get_db)):
             match.winner_team = "A"
             match.winner_id = p1.id
         else: 
-            # 🏆 GANÓ EL EQUIPO B (P3 y P4)
             p3.eternal_points += 10.0; p3.season_points += 10.0; p3.monthly_points += 10.0; p3.wins += 1
             if p4: p4.eternal_points += 10.0; p4.season_points += 10.0; p4.monthly_points += 10.0; p4.wins += 1
             
@@ -545,7 +604,6 @@ async def ver_club(request: Request, club_id: int, db: Session = Depends(get_db)
                 "categorias": mis_categorias, "rank": p.prestige_rank
             })
 
-        # ORDENAR POR PUNTOS DE TEMPORADA (Regla de Oro de Gamificación TOH)
         jugadores_procesados.sort(key=lambda x: x["season_points"], reverse=True)
         retos_db = db.query(Match).filter(Match.is_finished == False).all()
 
@@ -608,18 +666,15 @@ def nuclear_reset():
         
         from models import Country, City, Club, WhiteList, Category
         
-        # 1. Crear geografía
         colombia = Country(name="Colombia")
         db.add(colombia); db.flush()
         
         pasto = City(name="Pasto", country_id=colombia.id)
         db.add(pasto); db.flush()
         
-        # 2. Crear Club de Padel (Muro vacío)
         club = Club(name="Pasto Padel Club", admin_phone="573152405542", city_id=pasto.id)
         db.add(club); db.flush()
         
-        # 3. Crear Categorías Oficiales de TOH Padel
         categorias_nombres = [
             "Primera Categoría", "Segunda Categoría", "Tercera Categoría", 
             "Cuarta Categoría", "Quinta Categoría", "Sexta Categoría", 
@@ -632,7 +687,6 @@ def nuclear_reset():
             
         db.flush()
         
-        # 4. Guardar en WhiteList para Daniel
         db.add(WhiteList(phone_number="573152405542", full_name="Daniel (CEO)", club_id=club.id))
         
         db.commit()
@@ -642,7 +696,6 @@ def nuclear_reset():
         return {"status": "error", "mensaje": str(e)}
 
 async def procesar_mensaje_ia(telefono: str, texto: str, tipo: str, enviar_real: bool = False, media_id: str = None):
-    # (Mantener igual...)
     pass
 
 if __name__ == "__main__":

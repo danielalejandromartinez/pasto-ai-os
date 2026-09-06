@@ -30,6 +30,12 @@ class Club(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, unique=True, index=True)
     admin_phone = Column(String, unique=True, index=True)
+    
+    # 🔑 SEGURIDAD ADMIN CLUB (Nivel 2)
+    admin_username = Column(String, unique=True, index=True, nullable=True)
+    admin_password = Column(String, nullable=True)
+    is_active = Column(Boolean, default=True) # Interruptor de Pago (Nivel 1)
+    
     created_at = Column(DateTime, default=datetime.utcnow)
     
     city_id = Column(Integer, ForeignKey("cities.id"), nullable=True)
@@ -137,6 +143,9 @@ class Match(Base):
     is_confirmed = Column(Boolean, default=False)
     
     scheduled_time = Column(DateTime, nullable=True)
+    
+    # 🕵️ AUDITORÍA DE RESULTADOS
+    audit_log = Column(String, nullable=True) 
     
     tournament_id = Column(Integer, ForeignKey("tournaments.id"), nullable=True)
     tournament = relationship("Tournament", back_populates="matches")
