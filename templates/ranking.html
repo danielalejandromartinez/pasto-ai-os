@@ -96,7 +96,7 @@
     <!-- 🎛️ FILTRO DE CATEGORÍAS -->
     <div class="max-w-[1700px] mx-auto px-6 md:px-12 mb-12 flex flex-wrap gap-3 justify-center">
         {% for cat in categorias %}
-        <button onclick="filtrarCategoria('{{ cat.name }}')" class="category-btn bg-white/5 border border-white/10 text-white/60 hover:text-brand hover:border-brand px-6 py-3 rounded-full text-xs digital-font transition-all uppercase tracking-widest">
+        <button data-category="{{ cat.name }}" onclick="filtrarCategoria('{{ cat.name }}')" class="category-btn bg-white/5 border border-white/10 text-white/60 hover:text-brand hover:border-brand px-6 py-3 rounded-full text-xs digital-font transition-all uppercase tracking-widest">
             {{ cat.name }}
         </button>
         {% endfor %}
@@ -157,7 +157,7 @@
         <!-- 🎴 GRID DE GUERREROS (REDESIGNED PARA GAMIFICACIÓN TOH) -->
         <div id="player-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-8">
             {% for jugador in jugadores %}
-            <div class="player-card-container relative h-[550px] overflow-hidden group cursor-pointer rank-{{ jugador.rank | lower }}" data-category="{{ jugador.categorias[0] }}" onclick="openDossier({{ jugador.id }})">
+            <div class="player-card-container relative h-[550px] overflow-hidden group cursor-pointer rank-{{ jugador.rank | lower }}" data-categories="{{ jugador.categorias | join('|') }}" data-category="{{ jugador.categorias[0] }}" onclick="openDossier({{ jugador.id }})">
                 
                 <!-- 1. PUESTO # (Superior Izquierda - AUTORIDAD) -->
                 <div class="absolute top-6 left-6 z-20">
@@ -259,14 +259,25 @@
         const socket = new WebSocket(`${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws/${clubId}`);
         socket.onmessage = (e) => { if (e.data === "update") location.reload(); };
 
+        function normalizarTexto(txt) {
+            if (!txt) return "";
+            return txt.toString().normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+        }
+
         function filtrarCategoria(nombreCategoria) {
+            const targetNorm = normalizarTexto(nombreCategoria);
+
             document.querySelectorAll('.category-btn').forEach(btn => {
                 btn.style.borderColor = 'rgba(255,255,255,0.1)';
                 btn.style.color = 'rgba(255,255,255,0.6)';
                 btn.style.boxShadow = 'none';
             });
 
-            const btnActivo = Array.from(document.querySelectorAll('.category-btn')).find(b => b.innerText.trim() === nombreCategoria.toUpperCase());
+            const btnActivo = Array.from(document.querySelectorAll('.category-btn')).find(b => {
+                const bVal = b.getAttribute('data-category') || b.textContent;
+                return normalizarTexto(bVal) === targetNorm;
+            });
+
             if (btnActivo) {
                 btnActivo.style.borderColor = 'var(--brand-color)';
                 btnActivo.style.color = 'var(--brand-color)';
@@ -274,8 +285,10 @@
             }
 
             document.querySelectorAll('.player-card-container').forEach(card => {
-                const catCard = card.getAttribute('data-category');
-                if (catCard === nombreCategoria) {
+                const rawCats = card.getAttribute('data-categories') || card.getAttribute('data-category') || "";
+                const cardCats = rawCats.split('|').map(c => normalizarTexto(c));
+                
+                if (cardCats.includes(targetNorm)) {
                     card.style.display = 'block';
                 } else {
                     card.style.display = 'none';
@@ -307,7 +320,8 @@
             verificarSesion();
             const primerBoton = document.querySelector('.category-btn');
             if (primerBoton) {
-                filtrarCategoria(primerBoton.innerText.trim());
+                const catInicial = primerBoton.getAttribute('data-category') || primerBoton.textContent.trim();
+                filtrarCategoria(catInicial);
             }
         };
 
