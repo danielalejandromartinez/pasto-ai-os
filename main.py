@@ -238,31 +238,61 @@ async def aceptar_desafio_toh(match_id: int, db: Session = Depends(get_db)):
         return {"status": "error", "mensaje": str(e)}
 
 # ============================================================
+# ⚡ WEBSOCKET: CANAL EN TIEMPO REAL (PWA ARENA & RANKING)
+# ============================================================
+@app.websocket("/ws/{club_id}")
+async def websocket_endpoint(websocket: WebSocket, club_id: int):
+    await manager.connect(websocket, club_id)
+    try:
+        while True:
+            await websocket.receive_text()
+    except WebSocketDisconnect:
+        manager.disconnect(websocket, club_id)
+    except Exception:
+        manager.disconnect(websocket, club_id)
+
+# ============================================================
 # 🤝 API: UNIRSE AL DRAFT ABIERTO (LA RED SOCIAL TOH)
 # ============================================================
 @app.post("/api/challenge/join/{match_id}")
 async def unirse_desafio_toh(match_id: int, request: Request, db: Session = Depends(get_db)):
     try:
         data = await request.json()
-        player_id = int(data.get("player_id"))
+        try:
+            player_id = int(data.get("player_id"))
+        except (ValueError, TypeError):
+            return {"status": "error", "mensaje": "Identificador de jugador inválido."}
+            
         team = data.get("team") 
 
         print(f"\n{C_OBS}[LOOP: PASO 1 - OBSERVANDO 👁️] -> Jugador {player_id} solicitando silla en Match {match_id} (Equipo {team}){C_END}")
 
         match = db.query(Match).filter(Match.id == match_id).first()
-        if not match: return {"status": "error", "mensaje": "Duelo no localizado."}
-        
-        if player_id in [match.player_1_id, match.player_2_id, match.player_3_id, match.player_4_id]:
-            return {"status": "error", "mensaje": "Ya tienes una silla reservada en esta batalla."}
+        if not match: 
+            return {"status": "error", "mensaje": "Duelo no localizado en la Arena."}
+
+        if match.is_finished:
+            return {"status": "error", "mensaje": "Esta batalla ya ha finalizado."}
+
+        # 🛡️ SEGUNDO ESCUDO DE SEGURIDAD (BACKEND):
+        # Rechaza si el jugador ya ocupa cualquier posición (P1, P2, P3 o P4)
+        jugadores_actuales = [p for p in [match.player_1_id, match.player_2_id, match.player_3_id, match.player_4_id] if p is not None]
+        if player_id in jugadores_actuales:
+            print(f"{C_VER}[LOOP: PASO 6 - BLOQUEO DE SEGURIDAD 🛡️] -> Intento duplicado detectado: Jugador ID {player_id} en Match {match_id}.{C_END}")
+            return {"status": "error", "mensaje": "⚠️ Ya formas parte de esta batalla. No puedes ocupar dos sillas en el mismo duelo."}
 
         print(f"{C_EXE}[LOOP: PASO 5 - EJECUTANDO ⚡] -> Asignando asiento en el Draft...{C_END}")
         
         if team == "A":
-            if match.player_2_id is None: match.player_2_id = player_id
-            else: return {"status": "error", "mensaje": "La pareja de este jugador ya está completa."}
+            if match.player_2_id is None: 
+                match.player_2_id = player_id
+            else: 
+                return {"status": "error", "mensaje": "La pareja de este jugador ya está completa."}
         elif team == "B":
-            if match.player_4_id is None: match.player_4_id = player_id
-            else: return {"status": "error", "mensaje": "La pareja de este jugador ya está completa."}
+            if match.player_4_id is None: 
+                match.player_4_id = player_id
+            else: 
+                return {"status": "error", "mensaje": "La pareja de este jugador ya está completa."}
         else:
             return {"status": "error", "mensaje": "Equipo no válido."}
 
