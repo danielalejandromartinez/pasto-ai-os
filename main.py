@@ -182,7 +182,7 @@ async def subir_foto_perfil_toh(
         return {"status": "error", "mensaje": str(e)}
 
 # ============================================================
-# ⚔️ API: LANZAR DESAFÍO TÁCTICO (TAP-TO-DUEL)
+# ⚔️ API: LANZAR DESAFÍO TÁCTICO (TAP-TO-DUEL CON COORDENADA TEMPORAL)
 # ============================================================
 @app.post("/api/challenge/create")
 async def lanzar_desafio_pwa(request: Request, db: Session = Depends(get_db)):
@@ -191,8 +191,9 @@ async def lanzar_desafio_pwa(request: Request, db: Session = Depends(get_db)):
         retador_id = data.get("challenger_id")
         rival_id = data.get("opponent_id")
         club_id = data.get("club_id", 1)
+        fecha_iso = data.get("fecha_iso") # ✅ Captura de la fecha y hora seleccionadas en el frontend
 
-        print(f"\n{C_OBS}[LOOP: PASO 1 - OBSERVANDO 👁️] -> Petición de Duelo Táctico: ID {retador_id} vs ID {rival_id}{C_END}")
+        print(f"\n{C_OBS}[LOOP: PASO 1 - OBSERVANDO 👁️] -> Petición de Duelo Táctico: ID {retador_id} vs ID {rival_id} para {fecha_iso or 'Horario Inmediato'}{C_END}")
         
         if not retador_id or not rival_id:
             return {"status": "error", "mensaje": "Identidades incompletas para el duelo."}
@@ -201,7 +202,7 @@ async def lanzar_desafio_pwa(request: Request, db: Session = Depends(get_db)):
         resultado = agent.lanzar_desafio_tactico(
             retador_id=int(retador_id), 
             rival_id=int(rival_id), 
-            fecha_iso=None, 
+            fecha_iso=fecha_iso, # ✅ Conexión con el motor de BookingAgent
             club_id=int(club_id)
         )
 
@@ -481,7 +482,7 @@ async def actualizar_configuracion_club(club_id: int, request: Request, db: Sess
 # ============================================================
 @app.post("/api/admin/close-month/{club_id}")
 async def cerrar_mes(club_id: int, db: Session = Depends(get_db)):
-    """ Reparte medallas a los líderes de cada categoría y resetea los puntos mensuales a cero. """
+    ''' Reparte medallas a los líderes de cada categoría y resetea los puntos mensuales a cero. '''
     try:
         print(f"\n{C_PLA}[LOOP: PASO 4 - PLANIFICAR 📋] -> Iniciando Cierre de Mes (Club ID: {club_id}){C_END}")
         
@@ -512,7 +513,7 @@ async def cerrar_mes(club_id: int, db: Session = Depends(get_db)):
 
 @app.post("/api/admin/close-season/{club_id}")
 async def cerrar_temporada(club_id: int, db: Session = Depends(get_db)):
-    """ Reparte estrellas a los líderes de temporada y resetea puntos y medallas a cero. """
+    ''' Reparte estrellas a los líderes de temporada y resetea puntos y medallas a cero. '''
     try:
         print(f"\n{C_PLA}[LOOP: PASO 4 - PLANIFICAR 📋] -> Iniciando Cierre de Temporada (Club ID: {club_id}){C_END}")
         

@@ -111,8 +111,14 @@
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {% for reto in retos %}
                 <div class="relative p-8 rounded-3xl border border-white/5 bg-white/5 flex flex-col items-center group overflow-hidden">
-                    <span id="badge-status-{{ reto.id }}" class="relative z-10 text-[8px] digital-font mb-6 uppercase tracking-widest {{ 'text-green-400' if reto.is_confirmed else 'text-yellow-500' }}">{{ 'DUELO CONFIRMADO' if reto.is_confirmed else 'BUSCANDO JUGADORES...' }}</span>
+                    <span id="badge-status-{{ reto.id }}" class="relative z-10 text-[8px] digital-font mb-2 uppercase tracking-widest {{ 'text-green-400' if reto.is_confirmed else 'text-yellow-500' }}">{{ 'DUELO CONFIRMADO' if reto.is_confirmed else 'BUSCANDO JUGADORES...' }}</span>
                     
+                    <!-- 🕒 COORDENADA TEMPORAL DEL RETO (FECHA Y HORA) -->
+                    <div class="relative z-10 flex items-center gap-2 mb-5 px-3 py-1 bg-white/5 border border-white/10 rounded-full">
+                        <i class="fa-regular fa-calendar-days text-[10px] text-brand"></i>
+                        <span class="text-[9px] digital-font text-white/90 tracking-widest uppercase">{{ reto.scheduled_time.strftime('%d/%m/%Y - %I:%M %p') if reto.scheduled_time else 'HORA POR DEFINIR' }}</span>
+                    </div>
+
                     <div class="relative z-10 flex justify-between w-full items-center mb-6">
                         
                         <!-- EQUIPO A (Retador) -->
@@ -245,11 +251,27 @@
 
     <!-- 🛡️ DOSSIER TÁCTICO -->
     <div id="tactical-dossier">
-        <div class="max-w-md mx-auto flex flex-col h-full">
+        <div class="max-w-md mx-auto flex flex-col h-full overflow-y-auto">
             <div class="flex justify-between items-center mb-6">
                 <h2 id="dos-name" class="text-4xl font-black sport-font text-brand">---</h2>
                 <button onclick="closeAllDrawers()" class="text-white/20 hover:text-white text-3xl">&times;</button>
             </div>
+
+            <!-- 📅 AGENDAMIENTO TÁCTICO (DÍA Y HORA DEL RETO) -->
+            <div id="duel-schedule-box" class="flex flex-col gap-3 mb-6 p-4 rounded-2xl bg-white/5 border border-white/10 hidden">
+                <span class="text-[9px] digital-font text-brand uppercase tracking-widest"><i class="fa-regular fa-calendar-check"></i> Cita de Combate</span>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <span class="text-[8px] text-white/40 digital-font uppercase block mb-1">Día del Reto</span>
+                        <input type="date" id="duel-date" class="input-cyber text-xs p-3 m-0 text-center">
+                    </div>
+                    <div>
+                        <span class="text-[8px] text-white/40 digital-font uppercase block mb-1">Hora del Reto</span>
+                        <input type="time" id="duel-time" class="input-cyber text-xs p-3 m-0 text-center">
+                    </div>
+                </div>
+            </div>
+
             <button id="btn-duel-action" onclick="lanzarDuelo()" class="btn-challenge">LANZAR DESAFÍO DIRECTO</button>
         </div>
     </div>
@@ -462,12 +484,24 @@
                 `;
 
                 const btnAccion = document.getElementById('btn-duel-action');
+                const scheduleBox = document.getElementById('duel-schedule-box');
+
                 if (playerId === miIdLocal) {
+                    if (scheduleBox) scheduleBox.classList.add('hidden');
                     btnAccion.innerText = "SUBIR MI FOTO / SELFIE 📸";
                     btnAccion.style.borderColor = "#ffcc00"; 
                     btnAccion.style.color = "#ffcc00";
                     btnAccion.onclick = abrirSelectorFoto;
                 } else {
+                    if (scheduleBox) {
+                        scheduleBox.classList.remove('hidden');
+                        const inputDate = document.getElementById('duel-date');
+                        const inputTime = document.getElementById('duel-time');
+                        const hoy = new Date().toISOString().split('T')[0];
+                        inputDate.min = hoy;
+                        if (!inputDate.value) inputDate.value = hoy;
+                        if (!inputTime.value) inputTime.value = "18:00";
+                    }
                     btnAccion.innerText = "LANZAR DESAFÍO DIRECTO";
                     btnAccion.style.borderColor = "var(--brand-color)";
                     btnAccion.style.color = "#000";
@@ -613,7 +647,17 @@
                 return;
             }
 
-            if (!confirm("¿Deseas lanzar un guante de desafío directo a este rival?")) return;
+            const fechaVal = document.getElementById('duel-date').value;
+            const horaVal = document.getElementById('duel-time').value;
+
+            if (!fechaVal || !horaVal) {
+                alert("⚠️ Por favor selecciona el día y la hora para agendar la batalla.");
+                return;
+            }
+
+            const fechaIso = `${fechaVal}T${horaVal}:00`;
+
+            if (!confirm(`¿Deseas lanzar el desafío directo para el ${fechaVal} a las ${horaVal}?`)) return;
 
             const res = await fetch('/api/challenge/create', {
                 method: 'POST',
@@ -621,7 +665,8 @@
                 body: JSON.stringify({
                     challenger_id: challengerId,
                     opponent_id: rivalSeleccionadoId,
-                    club_id: clubId
+                    club_id: clubId,
+                    fecha_iso: fechaIso
                 })
             });
 
