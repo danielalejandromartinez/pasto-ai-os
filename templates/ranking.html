@@ -265,6 +265,64 @@
 
     <div id="global-overlay" onclick="closeAllDrawers()"></div>
 
+    <!-- 🏟️ DRAWER: GRID DE DISPONIBILIDAD Y RESERVAS (THE ARENA 48H) -->
+    <div id="booking-drawer">
+        <div class="max-w-xl mx-auto h-full flex flex-col justify-between overflow-y-auto">
+            <div>
+                <!-- Encabezado del Dashboard -->
+                <div class="flex justify-between items-center mb-4">
+                    <div>
+                        <h2 class="text-3xl font-black sport-font text-brand">DISPONIBILIDAD DE CANCHAS</h2>
+                        <span class="text-[9px] digital-font text-white/40 uppercase tracking-widest">Ventana de Urgencia • Máximo 48 Horas</span>
+                    </div>
+                    <button onclick="closeAllDrawers()" class="text-white/20 hover:text-white text-3xl">&times;</button>
+                </div>
+
+                <!-- Selector de Día Urgente: HOY vs MAÑANA -->
+                <div class="grid grid-cols-2 gap-3 mb-4">
+                    <button id="btn-dia-hoy" onclick="seleccionarDiaReserva('hoy')" class="py-3 px-4 rounded-xl border border-brand bg-brand/20 text-brand font-black digital-font text-xs uppercase tracking-widest transition-all">
+                        📅 HOY
+                    </button>
+                    <button id="btn-dia-manana" onclick="seleccionarDiaReserva('manana')" class="py-3 px-4 rounded-xl border border-white/10 bg-white/5 text-white/50 font-black digital-font text-xs uppercase tracking-widest transition-all hover:text-white hover:border-white/30">
+                        ⚡ MAÑANA
+                    </button>
+                </div>
+
+                <!-- Leyenda de Estados -->
+                <div class="flex items-center justify-center gap-4 mb-4 text-[9px] digital-font text-white/60">
+                    <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-green-500 shadow-[0_0_8px_#00ff88]"></span> LIBRE (90 min)</span>
+                    <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-red-500/40"></span> OCUPADA</span>
+                </div>
+
+                <!-- Contenedor del Grid Dinámico -->
+                <div id="grid-canchas-dinamico" class="flex flex-col gap-3 min-h-[220px]">
+                    <div class="flex items-center justify-center py-12 text-white/30 digital-font text-xs">
+                        <i class="fa-solid fa-spinner fa-spin mr-2"></i> Consultando satélite de la Arena...
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Sheet Inferior al tocar celda verde -->
+            <div id="slot-action-sheet" class="p-4 rounded-2xl bg-white/5 border border-brand/40 flex flex-col gap-3 mt-4 hidden">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <span id="slot-cancha-badge" class="text-brand font-black digital-font text-sm uppercase">CANCHA 1</span>
+                        <span id="slot-hora-badge" class="text-white/80 digital-font text-xs block">07:00 PM (Bloque 90 min)</span>
+                    </div>
+                    <button onclick="cerrarActionSheet()" class="text-white/30 hover:text-white text-lg">&times;</button>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <button onclick="crearPartidoAbiertoDesdeGrid()" class="py-3 px-4 bg-brand text-black font-black digital-font text-[10px] rounded-xl uppercase tracking-widest hover:brightness-110 transition-all shadow-[0_0_15px_rgba(0,242,255,0.3)]">
+                        🎾 PUBLICAR PARTIDO (1/4)
+                    </button>
+                    <button onclick="reservarAmistosoDesdeGrid()" class="py-3 px-4 bg-white/10 hover:bg-white/20 border border-white/20 text-white font-bold digital-font text-[10px] rounded-xl uppercase tracking-widest transition-all">
+                        🔒 RESERVA PRIVADA
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- 🎾 DRAWER: PUBLICAR PARTIDO ABIERTO COMUNITARIO -->
     <div id="open-match-drawer">
         <div class="max-w-md mx-auto h-full flex flex-col justify-between">
@@ -453,7 +511,7 @@
                     btnLeaveB.classList.remove('hidden');
                 }
 
-                // Creador (P1) puede cancelar el reto si es duelo directo
+                // Creador (P1) puede cancelar el duelo
                 const btnCancel = card.querySelector(`.btn-cancel-duel-${matchId}`);
                 if (btnCancel && miIdLocal === p1) {
                     btnCancel.classList.remove('hidden');
@@ -514,7 +572,177 @@
             document.getElementById('registration-drawer').classList.remove('drawer-open');
             const openDrawer = document.getElementById('open-match-drawer');
             if (openDrawer) openDrawer.classList.remove('drawer-open');
+            const bookingDrawer = document.getElementById('booking-drawer');
+            if (bookingDrawer) bookingDrawer.classList.remove('drawer-open');
+            cerrarActionSheet();
             document.getElementById('global-overlay').style.display = 'none';
+        }
+
+        // ============================================================
+        // 🏟️ MOTOR DEL GRID DE DISPONIBILIDAD (THE ARENA 48H)
+        // ============================================================
+        let slotSeleccionado = null; // { horaStr, canchaNum, horaIso }
+        let diaSeleccionado = 'hoy';
+
+        function toggleBooking(abrir) {
+            const miIdLocal = parseInt(localStorage.getItem('pasto_player_id')) || 0;
+            if (miIdLocal === 0) {
+                alert("Por favor inicia sesión para ver la disponibilidad y reservar.");
+                openRegistration();
+                return;
+            }
+
+            const drawer = document.getElementById('booking-drawer');
+            const overlay = document.getElementById('global-overlay');
+
+            if (abrir) {
+                drawer.classList.add('drawer-open');
+                overlay.style.display = 'block';
+                seleccionarDiaReserva('hoy');
+            } else {
+                closeAllDrawers();
+            }
+        }
+
+        async function seleccionarDiaReserva(dia) {
+            diaSeleccionado = dia;
+            const btnHoy = document.getElementById('btn-dia-hoy');
+            const btnManana = document.getElementById('btn-dia-manana');
+            cerrarActionSheet();
+
+            const hoyObj = new Date();
+            let targetDateObj = new Date();
+            if (dia === 'manana') {
+                targetDateObj.setDate(hoyObj.getDate() + 1);
+                btnManana.className = "py-3 px-4 rounded-xl border border-brand bg-brand/20 text-brand font-black digital-font text-xs uppercase tracking-widest transition-all";
+                btnHoy.className = "py-3 px-4 rounded-xl border border-white/10 bg-white/5 text-white/50 font-black digital-font text-xs uppercase tracking-widest transition-all hover:text-white hover:border-white/30";
+            } else {
+                btnHoy.className = "py-3 px-4 rounded-xl border border-brand bg-brand/20 text-brand font-black digital-font text-xs uppercase tracking-widest transition-all";
+                btnManana.className = "py-3 px-4 rounded-xl border border-white/10 bg-white/5 text-white/50 font-black digital-font text-xs uppercase tracking-widest transition-all hover:text-white hover:border-white/30";
+            }
+
+            const fechaStr = targetDateObj.toISOString().split('T')[0];
+            await cargarGridCanchas(fechaStr);
+        }
+
+        async function cargarGridCanchas(fechaStr) {
+            const container = document.getElementById('grid-canchas-dinamico');
+            container.innerHTML = `<div class="flex items-center justify-center py-12 text-white/30 digital-font text-xs"><i class="fa-solid fa-spinner fa-spin mr-2"></i> Consultando disponibilidad...</div>`;
+
+            try {
+                const res = await fetch(`/api/booking/grid/${clubId}?fecha=${fechaStr}`);
+                const data = await res.json();
+
+                if (data.status !== 'success' || !data.grid || data.grid.length === 0) {
+                    container.innerHTML = `<p class="text-white/30 text-center text-xs py-8 italic font-medium">No hay bloques de juego configurados para este día.</p>`;
+                    return;
+                }
+
+                let html = `<div class="flex flex-col gap-3">`;
+                data.grid.forEach(fila => {
+                    html += `
+                        <div class="p-3.5 rounded-2xl bg-white/5 border border-white/10 flex flex-col gap-2">
+                            <div class="flex items-center justify-between border-b border-white/5 pb-2">
+                                <span class="digital-font text-xs text-brand font-bold"><i class="fa-regular fa-clock mr-1"></i> ${fila.hora}</span>
+                                <span class="text-[8px] digital-font text-white/30 uppercase tracking-widest">Bloque de 90 min</span>
+                            </div>
+                            <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    `;
+
+                    fila.canchas.forEach(cancha => {
+                        const esLibre = cancha.estado === 'libre';
+                        if (esLibre) {
+                            html += `
+                                <button onclick="abrirActionSheetSlot('${fila.hora}', ${cancha.numero}, '${fila.hora_iso}')" class="p-2.5 rounded-xl border border-green-500/40 bg-green-500/10 hover:bg-green-500 hover:text-black text-green-400 digital-font text-[10px] font-bold flex flex-col items-center transition-all shadow-[0_0_8px_rgba(0,255,136,0.15)]">
+                                    <span>CANCHA ${cancha.numero}</span>
+                                    <span class="text-[7px] tracking-widest opacity-80 mt-0.5">🟢 DISPONIBLE</span>
+                                </button>
+                            `;
+                        } else {
+                            html += `
+                                <div class="p-2.5 rounded-xl border border-white/5 bg-black/40 text-white/20 digital-font text-[10px] flex flex-col items-center cursor-not-allowed">
+                                    <span>CANCHA ${cancha.numero}</span>
+                                    <span class="text-[7px] tracking-widest opacity-40 mt-0.5">🔴 ${cancha.label || 'OCUPADA'}</span>
+                                </div>
+                            `;
+                        }
+                    });
+
+                    html += `</div></div>`;
+                });
+                html += `</div>`;
+                container.innerHTML = html;
+
+            } catch (err) {
+                container.innerHTML = `<p class="text-red-400 text-center text-xs py-8">Fallo al sincronizar canchas. Intenta de nuevo.</p>`;
+            }
+        }
+
+        function abrirActionSheetSlot(horaStr, canchaNum, horaIso) {
+            slotSeleccionado = { horaStr, canchaNum, horaIso };
+            document.getElementById('slot-cancha-badge').innerText = `CANCHA ${canchaNum}`;
+            document.getElementById('slot-hora-badge').innerText = `${horaStr} • Bloque 90 min (${diaSeleccionado.toUpperCase()})`;
+            document.getElementById('slot-action-sheet').classList.remove('hidden');
+        }
+
+        function cerrarActionSheet() {
+            slotSeleccionado = null;
+            const sheet = document.getElementById('slot-action-sheet');
+            if (sheet) sheet.classList.add('hidden');
+        }
+
+        async function crearPartidoAbiertoDesdeGrid() {
+            if (!slotSeleccionado) return;
+            const miIdLocal = parseInt(localStorage.getItem('pasto_player_id')) || 0;
+
+            if (!confirm(`¿Deseas fundar un partido abierto en la Cancha ${slotSeleccionado.canchaNum} a las ${slotSeleccionado.horaStr}?`)) return;
+
+            const res = await fetch('/api/match/open/create', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    creator_id: miIdLocal,
+                    club_id: clubId,
+                    fecha_iso: slotSeleccionado.horaIso,
+                    court_number: slotSeleccionado.canchaNum
+                })
+            });
+
+            const data = await res.json();
+            if (data.status === 'success') {
+                alert(data.mensaje);
+                closeAllDrawers();
+                location.reload();
+            } else {
+                alert("Error: " + data.mensaje);
+            }
+        }
+
+        async function reservarAmistosoDesdeGrid() {
+            if (!slotSeleccionado) return;
+            const miIdLocal = parseInt(localStorage.getItem('pasto_player_id')) || 0;
+
+            if (!confirm(`¿Deseas apartar la Cancha ${slotSeleccionado.canchaNum} a las ${slotSeleccionado.horaStr} como reserva privada?`)) return;
+
+            const res = await fetch('/api/booking/reserve', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    player_id: miIdLocal,
+                    club_id: clubId,
+                    court_number: slotSeleccionado.canchaNum,
+                    scheduled_time: slotSeleccionado.horaIso
+                })
+            });
+
+            const data = await res.json();
+            if (data.status === 'success') {
+                alert("¡Cancha reservada con éxito en la Arena!");
+                closeAllDrawers();
+                location.reload();
+            } else {
+                alert("Error: " + data.mensaje);
+            }
         }
 
         function abrirModalPartidoAbierto() {
