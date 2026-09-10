@@ -142,13 +142,15 @@
                         <div class="flex flex-col items-center text-center w-2/5">
                             {% if reto.player_1 %}
                                 <span class="sport-font text-lg text-white truncate w-full">{{ reto.player_1.name.split(' ')[0] }}</span>
+                                <!-- 🚪 CEDER SILLA EQUIPO A (P1) -->
+                                <button onclick="abandonarDuelo({{ reto.id }}, 'ceder')" class="btn-leave-p1-{{ reto.id }} mt-1 px-2 py-0.5 bg-red-500/10 hover:bg-red-500 hover:text-black border border-red-500/30 text-red-400 rounded text-[8px] digital-font transition-all hidden">🚪 CEDER SILLA</button>
                             {% else %}
                                 <button onclick="unirseDuelo({{ reto.id }}, 'A', {{ reto.player_1_id or 0 }}, {{ reto.player_3_id or 0 }})" class="px-3 py-1 bg-white/10 hover:bg-brand hover:text-black rounded text-[9px] digital-font transition-all border border-dashed border-white/20">🪑 UNIRSE</button>
                             {% endif %}
 
                             {% if reto.player_2_id %}
                                 <span class="sport-font text-sm text-brand truncate w-full">+ {{ reto.player_2.name.split(' ')[0] }}</span>
-                                <!-- 🚪 CEDER SILLA EQUIPO A -->
+                                <!-- 🚪 CEDER SILLA EQUIPO A (P2) -->
                                 <button onclick="abandonarDuelo({{ reto.id }}, 'ceder')" class="btn-leave-a-{{ reto.id }} mt-1 px-2 py-0.5 bg-red-500/10 hover:bg-red-500 hover:text-black border border-red-500/30 text-red-400 rounded text-[8px] digital-font transition-all hidden">🚪 CEDER SILLA</button>
                             {% else %}
                                 <button onclick="unirseDuelo({{ reto.id }}, 'A', {{ reto.player_1_id or 0 }}, {{ reto.player_3_id or 0 }})" class="mt-2 px-3 py-1 bg-white/10 hover:bg-brand hover:text-black rounded text-[9px] digital-font transition-all border border-dashed border-white/20">🪑 UNIRSE</button>
@@ -161,13 +163,15 @@
                         <div class="flex flex-col items-center text-center w-2/5">
                             {% if reto.p3 %}
                                 <span class="sport-font text-lg text-white truncate w-full">{{ reto.p3.name.split(' ')[0] }}</span>
+                                <!-- 🚪 CEDER SILLA EQUIPO B (P3) -->
+                                <button onclick="abandonarDuelo({{ reto.id }}, 'ceder')" class="btn-leave-p3-{{ reto.id }} mt-1 px-2 py-0.5 bg-red-500/10 hover:bg-red-500 hover:text-black border border-red-500/30 text-red-400 rounded text-[8px] digital-font transition-all hidden">🚪 CEDER SILLA</button>
                             {% else %}
                                 <button onclick="unirseDuelo({{ reto.id }}, 'B', {{ reto.player_1_id or 0 }}, {{ reto.player_3_id or 0 }})" class="px-3 py-1 bg-white/10 hover:bg-brand hover:text-black rounded text-[9px] digital-font transition-all border border-dashed border-white/20">🪑 UNIRSE</button>
                             {% endif %}
 
                             {% if reto.player_4_id %}
                                 <span class="sport-font text-sm text-brand truncate w-full">+ {{ reto.p4.name.split(' ')[0] }}</span>
-                                <!-- 🚪 CEDER SILLA EQUIPO B -->
+                                <!-- 🚪 CEDER SILLA EQUIPO B (P4) -->
                                 <button onclick="abandonarDuelo({{ reto.id }}, 'ceder')" class="btn-leave-b-{{ reto.id }} mt-1 px-2 py-0.5 bg-red-500/10 hover:bg-red-500 hover:text-black border border-red-500/30 text-red-400 rounded text-[8px] digital-font transition-all hidden">🚪 CEDER SILLA</button>
                             {% else %}
                                 <button onclick="unirseDuelo({{ reto.id }}, 'B', {{ reto.player_1_id or 0 }}, {{ reto.player_3_id or 0 }})" class="mt-2 px-3 py-1 bg-white/10 hover:bg-brand hover:text-black rounded text-[9px] digital-font transition-all border border-dashed border-white/20">🪑 UNIRSE</button>
@@ -425,16 +429,16 @@
                 const p3 = parseInt(card.getAttribute('data-p3')) || 0;
                 const p4 = parseInt(card.getAttribute('data-p4')) || 0;
 
-                // Capitán Creador (P1) puede cancelar el duelo
-                const btnCancel = card.querySelector(`.btn-cancel-duel-${matchId}`);
-                if (btnCancel && miIdLocal === p1) {
-                    btnCancel.classList.remove('hidden');
+                // Creador (P1) puede ceder su silla individual
+                const btnLeaveP1 = card.querySelector(`.btn-leave-p1-${matchId}`);
+                if (btnLeaveP1 && miIdLocal === p1) {
+                    btnLeaveP1.classList.remove('hidden');
                 }
 
-                // Rival Titular (P3) puede rechazar el duelo antes de aceptarlo
-                const btnReject = card.querySelector(`.btn-reject-${matchId}`);
-                if (btnReject && miIdLocal === p3) {
-                    btnReject.classList.remove('hidden');
+                // Cabeza de Pareja B (P3) puede ceder su silla individual
+                const btnLeaveP3 = card.querySelector(`.btn-leave-p3-${matchId}`);
+                if (btnLeaveP3 && miIdLocal === p3) {
+                    btnLeaveP3.classList.remove('hidden');
                 }
 
                 // Compañero A (P2) puede ceder su silla
@@ -447,6 +451,18 @@
                 const btnLeaveB = card.querySelector(`.btn-leave-b-${matchId}`);
                 if (btnLeaveB && miIdLocal === p4) {
                     btnLeaveB.classList.remove('hidden');
+                }
+
+                // Creador (P1) puede cancelar el reto si es duelo directo
+                const btnCancel = card.querySelector(`.btn-cancel-duel-${matchId}`);
+                if (btnCancel && miIdLocal === p1) {
+                    btnCancel.classList.remove('hidden');
+                }
+
+                // Rival Titular (P3) puede rechazar el duelo antes de aceptarlo
+                const btnReject = card.querySelector(`.btn-reject-${matchId}`);
+                if (btnReject && miIdLocal === p3) {
+                    btnReject.classList.remove('hidden');
                 }
             });
         }
