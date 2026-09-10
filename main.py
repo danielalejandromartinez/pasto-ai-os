@@ -307,6 +307,60 @@ async def unirse_desafio_toh(match_id: int, request: Request, db: Session = Depe
         return {"status": "error", "mensaje": str(e)}
 
 # ============================================================
+# 🚪 API: SALIR DEL RETO / CEDER SILLA / CANCELAR DUELO (FLEXIBILIDAD TOH)
+# ============================================================
+@app.post("/api/challenge/leave/{match_id}")
+async def salir_o_cancelar_desafio_toh(match_id: int, request: Request, db: Session = Depends(get_db)):
+    try:
+        data = await request.json()
+        try:
+            player_id = int(data.get("player_id"))
+        except (ValueError, TypeError):
+            return {"status": "error", "mensaje": "Identificador de jugador inválido."}
+
+        match = db.query(Match).filter(Match.id == match_id).first()
+        if not match:
+            return {"status": "error", "mensaje": "Duelo no localizado en la Arena."}
+
+        if match.is_finished:
+            return {"status": "error", "mensaje": "No es posible modificar una batalla que ya concluyó."}
+
+        club_id = match.club_id
+
+        # 1. Caso Capitanes (Player 1 o Player 3): Cancelación total del duelo
+        if player_id in [match.player_1_id, match.player_3_id]:
+            print(f"\n{C_OBS}[LOOP: PASO 1 - CANCELACIÓN 🚪] -> Capitán ID {player_id} cancelando Match {match_id}. Reto anulado.{C_END}")
+            db.delete(match)
+            db.commit()
+            await manager.broadcast("update", club_id)
+            return {"status": "success", "mensaje": "Duelo cancelado exitosamente. La Arena ha quedado libre."}
+
+        # 2. Caso Compañero Equipo A (Player 2): Ceder silla
+        elif player_id == match.player_2_id:
+            print(f"\n{C_OBS}[LOOP: PASO 1 - CEDER SILLA 🚪] -> Compañero A (ID {player_id}) liberando puesto en Match {match_id}.{C_END}")
+            match.player_2_id = None
+            match.is_confirmed = False
+            db.commit()
+            await manager.broadcast("update", club_id)
+            return {"status": "success", "mensaje": "Has liberado tu silla en el Equipo A. ¡Lugar disponible para la comunidad!"}
+
+        # 3. Caso Compañero Equipo B (Player 4): Ceder silla
+        elif player_id == match.player_4_id:
+            print(f"\n{C_OBS}[LOOP: PASO 1 - CEDER SILLA 🚪] -> Compañero B (ID {player_id}) liberando puesto en Match {match_id}.{C_END}")
+            match.player_4_id = None
+            match.is_confirmed = False
+            db.commit()
+            await manager.broadcast("update", club_id)
+            return {"status": "success", "mensaje": "Has liberado tu silla en el Equipo B. ¡Lugar disponible para la comunidad!"}
+
+        else:
+            return {"status": "error", "mensaje": "No formas parte de este duelo."}
+
+    except Exception as e:
+        print(f"❌ Error al salir o cancelar: {e}")
+        return {"status": "error", "mensaje": str(e)}
+
+# ============================================================
 # 📅 API: GESTIÓN DE RESERVAS
 # ============================================================
 @app.get("/api/booking/grid/{club_id}")

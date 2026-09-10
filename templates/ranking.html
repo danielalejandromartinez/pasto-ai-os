@@ -110,7 +110,7 @@
             <h2 class="text-[10px] digital-font tracking-[0.6em] mb-8 opacity-40 uppercase">Live_Duels_Monitor</h2>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {% for reto in retos %}
-                <div class="relative p-8 rounded-3xl border border-white/5 bg-white/5 flex flex-col items-center group overflow-hidden">
+                <div class="duel-card relative p-8 rounded-3xl border border-white/5 bg-white/5 flex flex-col items-center group overflow-hidden" data-match-id="{{ reto.id }}" data-p1="{{ reto.player_1_id or 0 }}" data-p2="{{ reto.player_2_id or 0 }}" data-p3="{{ reto.player_3_id or 0 }}" data-p4="{{ reto.player_4_id or 0 }}">
                     <span id="badge-status-{{ reto.id }}" class="relative z-10 text-[8px] digital-font mb-2 uppercase tracking-widest {{ 'text-green-400' if reto.is_confirmed else 'text-yellow-500' }}">{{ 'DUELO CONFIRMADO' if reto.is_confirmed else 'BUSCANDO JUGADORES...' }}</span>
                     
                     <!-- 🕒 COORDENADA TEMPORAL DEL RETO (FECHA Y HORA) -->
@@ -126,6 +126,8 @@
                             <span class="sport-font text-lg text-white truncate w-full">{{ reto.player_1.name.split(' ')[0] if reto.player_1 else 'Retador' }}</span>
                             {% if reto.player_2_id %}
                                 <span class="sport-font text-sm text-brand truncate w-full">+ {{ reto.player_2.name.split(' ')[0] }}</span>
+                                <!-- 🚪 CEDER SILLA EQUIPO A -->
+                                <button onclick="abandonarDuelo({{ reto.id }}, 'ceder')" class="btn-leave-a-{{ reto.id }} mt-1 px-2 py-0.5 bg-red-500/10 hover:bg-red-500 hover:text-black border border-red-500/30 text-red-400 rounded text-[8px] digital-font transition-all hidden">🚪 CEDER SILLA</button>
                             {% else %}
                                 <button onclick="unirseDuelo({{ reto.id }}, 'A', {{ reto.player_1_id or 0 }}, {{ reto.player_3_id or 0 }})" class="mt-2 px-3 py-1 bg-white/10 hover:bg-brand hover:text-black rounded text-[9px] digital-font transition-all border border-dashed border-white/20">🪑 UNIRSE</button>
                             {% endif %}
@@ -138,6 +140,8 @@
                             <span class="sport-font text-lg text-white truncate w-full">{{ reto.p3.name.split(' ')[0] if reto.p3 else 'Rival' }}</span>
                             {% if reto.player_4_id %}
                                 <span class="sport-font text-sm text-brand truncate w-full">+ {{ reto.p4.name.split(' ')[0] }}</span>
+                                <!-- 🚪 CEDER SILLA EQUIPO B -->
+                                <button onclick="abandonarDuelo({{ reto.id }}, 'ceder')" class="btn-leave-b-{{ reto.id }} mt-1 px-2 py-0.5 bg-red-500/10 hover:bg-red-500 hover:text-black border border-red-500/30 text-red-400 rounded text-[8px] digital-font transition-all hidden">🚪 CEDER SILLA</button>
                             {% else %}
                                 <button onclick="unirseDuelo({{ reto.id }}, 'B', {{ reto.player_1_id or 0 }}, {{ reto.player_3_id or 0 }})" class="mt-2 px-3 py-1 bg-white/10 hover:bg-brand hover:text-black rounded text-[9px] digital-font transition-all border border-dashed border-white/20">🪑 UNIRSE</button>
                             {% endif %}
@@ -145,14 +149,22 @@
 
                     </div>
 
-                    <!-- 🤝 BOTÓN DE ACEPTAR PARA EL RIVAL PRINCIPAL -->
-                    <div id="handshake-actions-{{ reto.id }}" class="relative z-10 w-full flex justify-center" style="display: {{ 'none' if reto.is_confirmed else 'flex' }};">
-                        <button onclick="aceptarDuelo({{ reto.id }}, {{ reto.player_3_id }})" class="w-full py-3 bg-green-500/20 text-green-400 border border-green-500/30 rounded-xl text-[10px] digital-font hover:bg-green-500 hover:text-black font-bold uppercase transition-all">Aceptar Reto 🎾</button>
+                    <!-- 🤝 BOTÓN DE ACEPTAR / RECHAZAR PARA EL RIVAL PRINCIPAL -->
+                    <div id="handshake-actions-{{ reto.id }}" class="relative z-10 w-full flex gap-2 justify-center" style="display: {{ 'none' if reto.is_confirmed else 'flex' }};">
+                        <button onclick="aceptarDuelo({{ reto.id }}, {{ reto.player_3_id }})" class="flex-1 py-3 bg-green-500/20 text-green-400 border border-green-500/30 rounded-xl text-[10px] digital-font hover:bg-green-500 hover:text-black font-bold uppercase transition-all">Aceptar Reto 🎾</button>
+                        <button onclick="abandonarDuelo({{ reto.id }}, 'rechazar')" class="btn-reject-{{ reto.id }} px-4 py-3 bg-red-500/20 text-red-400 border border-red-500/30 rounded-xl text-[10px] digital-font hover:bg-red-500 hover:text-black font-bold uppercase transition-all hidden">Rechazar 🚫</button>
                     </div>
                     
                     <!-- BOTÓN IR AL TABLERO (Para el Árbitro) -->
                     <div id="go-board-{{ reto.id }}" class="relative z-10 w-full mt-2" style="display: {{ 'block' if reto.is_confirmed else 'none' }};">
                         <button onclick="window.location.href='/tablero?matchId={{ reto.id }}&p1={{ reto.player_1.name.split(' ')[0] if reto.player_1 else 'A1' }} y {{ reto.player_2.name.split(' ')[0] if reto.player_2 else 'A2' }}&p2={{ reto.p3.name.split(' ')[0] if reto.p3 else 'B1' }} y {{ reto.p4.name.split(' ')[0] if reto.p4 else 'B2' }}'" class="w-full py-3 bg-brand text-black rounded-xl text-[10px] digital-font font-bold uppercase transition-all">Ir al Tablero del Árbitro ⚔️</button>
+                    </div>
+
+                    <!-- 🗑️ BOTÓN CANCELAR RETO (Para Capitán Creador P1) -->
+                    <div class="relative z-10 w-full flex justify-center mt-3">
+                        <button onclick="abandonarDuelo({{ reto.id }}, 'cancelar')" class="btn-cancel-duel-{{ reto.id }} text-[8px] digital-font text-red-400/60 hover:text-red-400 tracking-widest uppercase transition-all hidden">
+                            <i class="fa-solid fa-trash-can mr-1"></i> Cancelar Reto
+                        </button>
                     </div>
                 </div>
                 {% endfor %}
@@ -283,7 +295,7 @@
 
         function normalizarTexto(txt) {
             if (!txt) return "";
-            return txt.toString().normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+            return txt.toString().normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().trim();
         }
 
         function filtrarCategoria(nombreCategoria) {
@@ -335,6 +347,79 @@
                 navBtn.innerText = "INGRESAR";
                 navBtn.className = "bg-brand/10 border border-brand/40 text-brand px-6 py-2 rounded-full text-[10px] digital-font hover:bg-brand hover:text-black transition-all";
                 navBtn.onclick = openRegistration;
+            }
+
+            actualizarBotonesDuelo();
+        }
+
+        // 🔄 Control de visibilidad contextual para retirarse, ceder silla o cancelar reto
+        function actualizarBotonesDuelo() {
+            const miIdLocal = parseInt(localStorage.getItem('pasto_player_id')) || 0;
+            if (miIdLocal === 0) return;
+
+            document.querySelectorAll('.duel-card').forEach(card => {
+                const matchId = card.getAttribute('data-match-id');
+                const p1 = parseInt(card.getAttribute('data-p1')) || 0;
+                const p2 = parseInt(card.getAttribute('data-p2')) || 0;
+                const p3 = parseInt(card.getAttribute('data-p3')) || 0;
+                const p4 = parseInt(card.getAttribute('data-p4')) || 0;
+
+                // Capitán Creador (P1) puede cancelar el duelo
+                const btnCancel = card.querySelector(`.btn-cancel-duel-${matchId}`);
+                if (btnCancel && miIdLocal === p1) {
+                    btnCancel.classList.remove('hidden');
+                }
+
+                // Rival Titular (P3) puede rechazar el duelo antes de aceptarlo
+                const btnReject = card.querySelector(`.btn-reject-${matchId}`);
+                if (btnReject && miIdLocal === p3) {
+                    btnReject.classList.remove('hidden');
+                }
+
+                // Compañero A (P2) puede ceder su silla
+                const btnLeaveA = card.querySelector(`.btn-leave-a-${matchId}`);
+                if (btnLeaveA && miIdLocal === p2) {
+                    btnLeaveA.classList.remove('hidden');
+                }
+
+                // Compañero B (P4) puede ceder su silla
+                const btnLeaveB = card.querySelector(`.btn-leave-b-${matchId}`);
+                if (btnLeaveB && miIdLocal === p4) {
+                    btnLeaveB.classList.remove('hidden');
+                }
+            });
+        }
+
+        // 🚪 Acción unificada para ceder silla, rechazar o cancelar reto
+        async function abandonarDuelo(matchId, tipoAccion) {
+            const miIdLocal = parseInt(localStorage.getItem('pasto_player_id')) || 0;
+            if (miIdLocal === 0) {
+                alert("Por favor inicia sesión.");
+                openRegistration();
+                return;
+            }
+
+            let confirmMsg = "¿Deseas ceder tu silla y salir de esta batalla?";
+            if (tipoAccion === 'cancelar') {
+                confirmMsg = "¿Estás seguro de cancelar este reto completo? La batalla se anulará en el Muro.";
+            } else if (tipoAccion === 'rechazar') {
+                confirmMsg = "¿Deseas rechazar este desafío de pádel?";
+            }
+
+            if (!confirm(confirmMsg)) return;
+
+            const res = await fetch(`/api/challenge/leave/${matchId}`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ player_id: miIdLocal })
+            });
+
+            const data = await res.json();
+            if (data.status === 'success') {
+                alert(data.mensaje);
+                location.reload();
+            } else {
+                alert("Error: " + data.mensaje);
             }
         }
 
