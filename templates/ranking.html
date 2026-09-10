@@ -302,19 +302,16 @@
                 </div>
             </div>
 
-            <!-- ⚡ Action Sheet Flotante Fijado a la Pantalla (Visible en cualquier punto del scroll) -->
-            <div id="slot-action-sheet" class="fixed bottom-6 left-4 right-4 max-w-lg mx-auto p-5 rounded-2xl bg-zinc-950/95 backdrop-blur-2xl border-2 border-brand shadow-[0_0_35px_rgba(0,242,255,0.4)] flex flex-col gap-3 hidden z-50 transition-all">
-                <div class="flex justify-between items-center border-b border-white/10 pb-2">
-                    <div class="flex items-center gap-2">
-                        <span class="w-2.5 h-2.5 rounded-full bg-brand shadow-[0_0_10px_#00f2ff]"></span>
-                        <div>
-                            <span id="slot-cancha-badge" class="text-brand font-black digital-font text-sm uppercase">CANCHA 1</span>
-                            <span id="slot-hora-badge" class="text-white/80 digital-font text-xs block">07:00 PM • Bloque 90 min</span>
-                        </div>
+            <!-- Action Sheet Inferior al tocar celda verde -->
+            <div id="slot-action-sheet" class="p-4 rounded-2xl bg-white/5 border border-brand/40 flex flex-col gap-3 mt-4 hidden">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <span id="slot-cancha-badge" class="text-brand font-black digital-font text-sm uppercase">CANCHA 1</span>
+                        <span id="slot-hora-badge" class="text-white/80 digital-font text-xs block">07:00 PM (Bloque 90 min)</span>
                     </div>
-                    <button onclick="cerrarActionSheet()" class="text-white/40 hover:text-white text-2xl font-bold px-2">&times;</button>
+                    <button onclick="cerrarActionSheet()" class="text-white/30 hover:text-white text-lg">&times;</button>
                 </div>
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     <button onclick="crearPartidoAbiertoDesdeGrid()" class="py-3 px-4 bg-brand text-black font-black digital-font text-[10px] rounded-xl uppercase tracking-widest hover:brightness-110 transition-all shadow-[0_0_15px_rgba(0,242,255,0.3)]">
                         🎾 PUBLICAR PARTIDO (1/4)
                     </button>
@@ -656,7 +653,7 @@
                         const esLibre = cancha.estado === 'libre';
                         if (esLibre) {
                             html += `
-                                <button onclick="abrirActionSheetSlot('${fila.hora}', ${cancha.numero}, '${fila.hora_iso}', this)" class="slot-court-btn p-2.5 rounded-xl border border-green-500/40 bg-green-500/10 hover:bg-green-500 hover:text-black text-green-400 digital-font text-[10px] font-bold flex flex-col items-center transition-all shadow-[0_0_8px_rgba(0,255,136,0.15)]">
+                                <button onclick="abrirActionSheetSlot('${fila.hora}', ${cancha.numero}, '${fila.hora_iso}')" class="p-2.5 rounded-xl border border-green-500/40 bg-green-500/10 hover:bg-green-500 hover:text-black text-green-400 digital-font text-[10px] font-bold flex flex-col items-center transition-all shadow-[0_0_8px_rgba(0,255,136,0.15)]">
                                     <span>CANCHA ${cancha.numero}</span>
                                     <span class="text-[7px] tracking-widest opacity-80 mt-0.5">🟢 DISPONIBLE</span>
                                 </button>
@@ -681,36 +678,15 @@
             }
         }
 
-        function abrirActionSheetSlot(horaStr, canchaNum, horaIso, btnElement) {
+        function abrirActionSheetSlot(horaStr, canchaNum, horaIso) {
             slotSeleccionado = { horaStr, canchaNum, horaIso };
-
-            // 🎯 Feedback Visual Inmediato: Resaltar la cancha tocada con aro neón
-            document.querySelectorAll('.slot-court-btn').forEach(b => {
-                b.classList.remove('ring-2', 'ring-brand', 'border-brand', 'bg-brand/20');
-                b.classList.add('border-green-500/40');
-            });
-            if (btnElement) {
-                btnElement.classList.add('ring-2', 'ring-brand', 'border-brand', 'bg-brand/20');
-                btnElement.classList.remove('border-green-500/40');
-            }
-
-            // 🔊 Feedback Sonoro
-            if (typeof playBeep === 'function') playBeep();
-
-            // 📱 Desplegar la Tarjeta Flotante directamente sobre la vista del usuario
             document.getElementById('slot-cancha-badge').innerText = `CANCHA ${canchaNum}`;
             document.getElementById('slot-hora-badge').innerText = `${horaStr} • Bloque 90 min (${diaSeleccionado.toUpperCase()})`;
-            
-            const sheet = document.getElementById('slot-action-sheet');
-            sheet.classList.remove('hidden');
+            document.getElementById('slot-action-sheet').classList.remove('hidden');
         }
 
         function cerrarActionSheet() {
             slotSeleccionado = null;
-            document.querySelectorAll('.slot-court-btn').forEach(b => {
-                b.classList.remove('ring-2', 'ring-brand', 'border-brand', 'bg-brand/20');
-                b.classList.add('border-green-500/40');
-            });
             const sheet = document.getElementById('slot-action-sheet');
             if (sheet) sheet.classList.add('hidden');
         }
@@ -824,6 +800,286 @@
                 alert(data.mensaje);
                 closeAllDrawers();
                 location.reload();
+            } else {
+                alert("Error: " + data.mensaje);
+            }
+        }
+
+        function openRegistration() {
+            document.getElementById('registration-drawer').classList.add('drawer-open');
+            document.getElementById('global-overlay').style.display = 'block';
+        }
+
+        function switchIdentityTab(tab) {
+            const tabLogin = document.getElementById('tab-login');
+            const tabReg = document.getElementById('tab-register');
+            const formLogin = document.getElementById('form-login');
+            const formReg = document.getElementById('form-register');
+
+            if (tab === 'login') {
+                tabLogin.className = "text-2xl font-black sport-font text-brand border-b-2 border-brand pb-2";
+                tabReg.className = "text-2xl font-black sport-font text-white/30 hover:text-white pb-2";
+                formLogin.classList.remove('hidden');
+                formReg.classList.add('hidden');
+            } else {
+                tabReg.className = "text-2xl font-black sport-font text-brand border-b-2 border-brand pb-2";
+                tabLogin.className = "text-2xl font-black sport-font text-white/30 hover:text-white pb-2";
+                formReg.classList.remove('hidden');
+                formLogin.classList.add('hidden');
+            }
+        }
+
+        async function ejecutarLogin() {
+            const username = document.getElementById('login-username').value;
+            const pin = document.getElementById('login-pin').value;
+
+            if (!username || !pin) {
+                alert("Por favor completa los campos.");
+                return;
+            }
+
+            const res = await fetch('/api/player/login', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ username: username, pin: pin })
+            });
+
+            const data = await res.json();
+            if (data.status === 'success') {
+                alert(data.mensaje);
+                localStorage.setItem('pasto_player_id', data.player_id);
+                localStorage.setItem('pasto_player_name', data.nombre);
+                localStorage.setItem('pasto_player_category', data.categoria);
+                
+                closeAllDrawers();
+                verificarSesion();
+                location.reload();
+            } else {
+                alert(data.mensaje);
+            }
+        }
+
+        function cerrarSesion() {
+            if (!confirm("¿Deseas cerrar sesión o cambiar de jugador?")) return;
+            localStorage.clear();
+            location.reload();
+        }
+
+        async function enviarRegistro() {
+            const nombre = document.getElementById('reg-nombre').value;
+            const username = document.getElementById('reg-username').value;
+            const pin = document.getElementById('reg-pin').value;
+            const categoria = document.getElementById('reg-categoria').value;
+
+            if (!nombre || !username || !pin) {
+                alert("Por favor completa los campos obligatorios.");
+                return;
+            }
+
+            if (pin.length !== 4 || isNaN(pin)) {
+                alert("El PIN debe ser exactamente de 4 números.");
+                return;
+            }
+
+            const res = await fetch('/api/player/register/request', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    nombre: nombre,
+                    username: username,
+                    pin: pin,
+                    categoria: categoria,
+                    club_id: clubId
+                })
+            });
+
+            const data = await res.json();
+            if (data.status === 'success') {
+                alert("¡Solicitud enviada! 🚀 El director de Pasto Padel Club verificará tu nivel. Te notificaremos una vez habilitado.");
+                localStorage.setItem('pasto_player_id', data.player_id);
+                closeAllDrawers();
+            } else {
+                alert("Error: " + data.mensaje);
+            }
+        }
+
+        let rivalSeleccionadoId = null;
+
+        async function openDossier(playerId) {
+            rivalSeleccionadoId = playerId;
+            const dossier = document.getElementById('tactical-dossier');
+            const overlay = document.getElementById('global-overlay');
+
+            const miIdLocal = parseInt(localStorage.getItem('pasto_player_id')) || 0;
+
+            const res = await fetch(`/api/player/${playerId}/stats`);
+            const data = await res.json();
+
+            if (data.status === 'success') {
+                document.getElementById('dos-name').innerText = data.perfil.nombre;
+                
+                let infoBox = document.getElementById('dos-info-box');
+                if (!infoBox) {
+                    infoBox = document.getElementById('dos-info-box') || document.createElement('div');
+                    infoBox.id = 'dos-info-box';
+                    infoBox.className = 'my-6 p-6 rounded-2xl bg-white/5 border border-white/10 flex flex-col gap-3';
+                    dossier.querySelector('.flex-col').insertBefore(infoBox, document.getElementById('btn-duel-action'));
+                }
+                
+                infoBox.innerHTML = `
+                    <div class="flex justify-between">
+                        <span class="text-white/40 font-bold uppercase text-[10px]">Rango Prestigio</span>
+                        <span class="text-brand font-black digital-font text-sm">${data.perfil.rango}</span>
+                    </div>
+                    <div class="flex justify-between border-t border-white/5 pt-3">
+                        <span class="text-white/40 font-bold uppercase text-[10px]">Victorias</span>
+                        <span class="text-green-500 font-bold digital-font">${data.perfil.wins}</span>
+                    </div>
+                    <div class="flex justify-between border-t border-white/5 pt-3">
+                        <span class="text-white/40 font-bold uppercase text-[10px]">Derrotas</span>
+                        <span class="text-red-500 font-bold digital-font">${data.perfil.losses}</span>
+                    </div>
+                `;
+
+                const btnAccion = document.getElementById('btn-duel-action');
+                const scheduleBox = document.getElementById('duel-schedule-box');
+
+                if (playerId === miIdLocal) {
+                    if (scheduleBox) scheduleBox.classList.add('hidden');
+                    btnAccion.innerText = "SUBIR MI FOTO / SELFIE 📸";
+                    btnAccion.style.borderColor = "#ffcc00"; 
+                    btnAccion.style.color = "#ffcc00";
+                    btnAccion.onclick = abrirSelectorFoto;
+                } else {
+                    if (scheduleBox) {
+                        scheduleBox.classList.remove('hidden');
+                        const inputDate = document.getElementById('duel-date');
+                        const inputTime = document.getElementById('duel-time');
+                        const hoy = new Date().toISOString().split('T')[0];
+                        inputDate.min = hoy;
+                        if (!inputDate.value) inputDate.value = hoy;
+                        if (!inputTime.value) inputTime.value = "18:00";
+                    }
+                    btnAccion.innerText = "LANZAR DESAFÍO DIRECTO";
+                    btnAccion.style.borderColor = "var(--brand-color)";
+                    btnAccion.style.color = "#000";
+                    btnAccion.onclick = lanzarDuelo;
+                }
+
+                dossier.classList.add('drawer-open');
+                overlay.style.display = 'block';
+            } else {
+                alert("Error al sincronizar el expediente táctico.");
+            }
+        }
+
+        function abrirSelectorFoto() {
+            document.getElementById('pwa-photo-input').click();
+        }
+
+        async function subirFotoPerfil(input) {
+            if (!input.files || input.files.length === 0) return;
+            
+            const file = input.files[0];
+            const formData = new FormData();
+            
+            const miIdLocal = parseInt(localStorage.getItem('pasto_player_id')) || 0;
+            formData.append("player_id", miIdLocal);
+            formData.append("foto", file);
+
+            const res = await fetch('/api/player/upload-photo', {
+                method: 'POST',
+                body: formData
+            });
+
+            const data = await res.json();
+            if (data.status === 'success') {
+                alert("¡Felicidades! Tu selfie ha sido activada en el Muro de la Fama.");
+                closeAllDrawers();
+                location.reload();
+            } else {
+                alert("Error: " + data.mensaje);
+            }
+        }
+
+        async function unirseDuelo(matchId, team, p1Id, p3Id) {
+            const miIdLocal = parseInt(localStorage.getItem('pasto_player_id')) || 0;
+
+            if (miIdLocal === 0) {
+                alert("Por favor inicia sesión para poder unirte a un partido.");
+                openRegistration();
+                return;
+            }
+
+            // 🛡️ ESCUDO INSTANTÁNEO EN EL CELULAR:
+            // Regla 1: Un jugador no puede ser compañero de sí mismo
+            if (team === 'A' && miIdLocal === p1Id) {
+                alert("⚠️ Ya formas parte de esta batalla como capitán(a) del Equipo A. No puedes ser tu propia pareja.");
+                return;
+            }
+
+            if (team === 'B' && miIdLocal === p3Id) {
+                alert("⚠️ Ya eres el rival titular (Equipo B). No puedes ser tu propia pareja.");
+                return;
+            }
+
+            // Regla 2: El retador no puede unirse al equipo rival y viceversa
+            if (team === 'B' && miIdLocal === p1Id) {
+                alert("⚠️ Ya eres el retador en el Equipo A. ¡No puedes jugar contra ti mismo!");
+                return;
+            }
+
+            if (team === 'A' && miIdLocal === p3Id) {
+                alert("⚠️ Ya estás asignado como rival en el Equipo B. ¡No puedes jugar contra ti mismo!");
+                return;
+            }
+
+            if (!confirm("¿Deseas ocupar esta silla libre en la Arena?")) return;
+
+            const res = await fetch(`/api/challenge/join/${matchId}`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ player_id: miIdLocal, team: team })
+            });
+
+            const data = await res.json();
+            if (data.status === 'success') {
+                alert(data.mensaje);
+                location.reload();
+            } else {
+                alert("Error: " + data.mensaje);
+            }
+        }
+
+        async function aceptarDuelo(matchId, p3Id) {
+            const miIdLocal = parseInt(localStorage.getItem('pasto_player_id')) || 0;
+
+            if (miIdLocal !== p3Id) {
+                alert("Solo el rival retado puede confirmar esta batalla en la Arena.");
+                return;
+            }
+
+            if (!confirm("¿Aceptas este desafío de Padel?")) return;
+
+            const res = await fetch(`/api/challenge/accept/${matchId}`, {
+                method: 'POST'
+            });
+
+            const data = await res.json();
+            if (data.status === 'success') {
+                alert(data.mensaje);
+                
+                const badge = document.getElementById(`badge-status-${matchId}`);
+                if (badge) {
+                    badge.innerText = "DUELO CONFIRMADO";
+                    badge.style.color = "#00ff88"; 
+                }
+                
+                const actions = document.getElementById(`handshake-actions-${matchId}`);
+                if (actions) actions.style.display = 'none';
+                
+                const goBoardBtn = document.getElementById(`go-board-${matchId}`);
+                if (goBoardBtn) goBoardBtn.style.display = 'block';
             } else {
                 alert("Error: " + data.mensaje);
             }
