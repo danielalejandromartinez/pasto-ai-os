@@ -6,6 +6,7 @@ import json
 import base64 # ✅ Para encriptar fotos de forma persistente en la BD
 import shutil # ✅ Para el manejo físico de selfies
 from datetime import datetime, timedelta
+import pytz # ✅ Zona horaria oficial para Colombia
 from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect, Depends, BackgroundTasks, Form, File, UploadFile # ✅ Formato de datos web
 from fastapi.responses import PlainTextResponse, HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
@@ -287,15 +288,23 @@ async def unirse_desafio_toh(match_id: int, request: Request, db: Session = Depe
         if team == "A":
             if match.player_2_id is None: 
                 match.player_2_id = player_id
+            elif match.player_1_id is None:
+                match.player_1_id = player_id
             else: 
-                return {"status": "error", "mensaje": "La pareja de este jugador ya está completa."}
+                return {"status": "error", "mensaje": "El Equipo A ya está completo."}
         elif team == "B":
-            if match.player_4_id is None: 
+            if match.player_3_id is None:
+                match.player_3_id = player_id
+            elif match.player_4_id is None: 
                 match.player_4_id = player_id
             else: 
-                return {"status": "error", "mensaje": "La pareja de este jugador ya está completa."}
+                return {"status": "error", "mensaje": "El Equipo B ya está completo."}
         else:
             return {"status": "error", "mensaje": "Equipo no válido."}
+
+        # ✅ Si los 4 asientos están llenos, el partido se confirma automáticamente
+        if match.player_1_id and match.player_2_id and match.player_3_id and match.player_4_id:
+            match.is_confirmed = True
 
         db.commit()
         
@@ -307,7 +316,7 @@ async def unirse_desafio_toh(match_id: int, request: Request, db: Session = Depe
         return {"status": "error", "mensaje": str(e)}
 
 # ============================================================
-# 🚪 API: SALIR DEL RETO / CEDER SILLA / CANCELAR DUELO (FLEXIBILIDAD TOH)
+# 🚪 API: SALIR DEL RETO / CEDER SILLA / CANCELAR (REGLA DE SUPERVIVENCIA)
 # ============================================================
 @app.post("/api/challenge/leave/{match_id}")
 async def salir_o_cancelar_desafio_toh(match_id: int, request: Request, db: Session = Depends(get_db)):
@@ -326,17 +335,10 @@ async def salir_o_cancelar_desafio_toh(match_id: int, request: Request, db: Sess
             return {"status": "error", "mensaje": "No es posible modificar una batalla que ya concluyó."}
 
         club_id = match.club_id
+        es_abierto = (match.audit_log == "open_match")
 
-        # 1. Caso Capitanes (Player 1 o Player 3): Cancelación total del duelo
-        if player_id in [match.player_1_id, match.player_3_id]:
-            print(f"\n{C_OBS}[LOOP: PASO 1 - CANCELACIÓN 🚪] -> Capitán ID {player_id} cancelando Match {match_id}. Reto anulado.{C_END}")
-            db.delete(match)
-            db.commit()
-            await manager.broadcast("update", club_id)
-            return {"status": "success", "mensaje": "Duelo cancelado exitosamente. La Arena ha quedado libre."}
-
-        # 2. Caso Compañero Equipo A (Player 2): Ceder silla
-        elif player_id == match.player_2_id:
+        # 1. Caso Compañero Equipo A (Player 2): Ceder silla
+        if player_id == match.player_2_id:
             print(f"\n{C_OBS}[LOOP: PASO 1 - CEDER SILLA 🚪] -> Compañero A (ID {player_id}) liberando puesto en Match {match_id}.{C_END}")
             match.player_2_id = None
             match.is_confirmed = False
@@ -344,7 +346,7 @@ async def salir_o_cancelar_desafio_toh(match_id: int, request: Request, db: Sess
             await manager.broadcast("update", club_id)
             return {"status": "success", "mensaje": "Has liberado tu silla en el Equipo A. ¡Lugar disponible para la comunidad!"}
 
-        # 3. Caso Compañero Equipo B (Player 4): Ceder silla
+        # 2. Caso Compañero Equipo B (Player 4): Ceder silla
         elif player_id == match.player_4_id:
             print(f"\n{C_OBS}[LOOP: PASO 1 - CEDER SILLA 🚪] -> Compañero B (ID {player_id}) liberando puesto en Match {match_id}.{C_END}")
             match.player_4_id = None
@@ -353,11 +355,140 @@ async def salir_o_cancelar_desafio_toh(match_id: int, request: Request, db: Sess
             await manager.broadcast("update", club_id)
             return {"status": "success", "mensaje": "Has liberado tu silla en el Equipo B. ¡Lugar disponible para la comunidad!"}
 
+        # 3. Caso Rival Principal (Player 3)
+        elif player_id == match.player_3_id:
+            if es_abierto:
+                # En partido abierto, P3 solo libera su silla si hay otros jugando
+                match.player_3_id = None
+                match.is_confirmed = False
+                jugadores_restantes = [p for p in [match.player_1_id, match.player_2_id, match.player_4_id] if p is not None]
+                if not jugadores_restantes:
+                    db.delete(match)
+                    db.commit()
+                    await manager.broadcast("update", club_id)
+                    return {"status": "success", "mensaje": "Partido abierto cancelado por falta de jugadores."}
+                db.commit()
+                await manager.broadcast("update", club_id)
+                return {"status": "success", "mensaje": "Has liberado tu silla en el Equipo B."}
+            else:
+                # En duelo directo, si el rival retado se retira, se anula el reto
+                db.delete(match)
+                db.commit()
+                await manager.broadcast("update", club_id)
+                return {"status": "success", "mensaje": "Desafío cancelado exitosamente."}
+
+        # 4. Caso Capitán Creador (Player 1) - REGLA DE SUPERVIVENCIA
+        elif player_id == match.player_1_id:
+            if es_abierto:
+                jugadores_restantes = [p for p in [match.player_2_id, match.player_3_id, match.player_4_id] if p is not None]
+                if jugadores_restantes:
+                    # 🌟 SUPERVIVENCIA: El creador se baja pero el partido sigue vivo para los demás
+                    print(f"\n{C_OBS}[SUPERVIVENCIA 🌟] -> Creador ID {player_id} se retira de Match {match_id}, pero {len(jugadores_restantes)} jugadores continúan.{C_END}")
+                    match.player_1_id = None
+                    match.is_confirmed = False
+                    db.commit()
+                    await manager.broadcast("update", club_id)
+                    return {"status": "success", "mensaje": "Te has retirado del partido. ¡Tu silla queda libre para otro jugador y el partido sigue vivo!"}
+                else:
+                    # Si estaba solo, se cancela el partido vacío
+                    db.delete(match)
+                    db.commit()
+                    await manager.broadcast("update", club_id)
+                    return {"status": "success", "mensaje": "Partido abierto cancelado exitosamente."}
+            else:
+                # En duelo directo 1v1, si P1 cancela, se anula el reto completo
+                print(f"\n{C_OBS}[LOOP: PASO 1 - CANCELACIÓN 🚪] -> Creador ID {player_id} cancelando Duelo {match_id}.{C_END}")
+                db.delete(match)
+                db.commit()
+                await manager.broadcast("update", club_id)
+                return {"status": "success", "mensaje": "Duelo cancelado exitosamente. La Arena ha quedado libre."}
+
         else:
             return {"status": "error", "mensaje": "No formas parte de este duelo."}
 
     except Exception as e:
         print(f"❌ Error al salir o cancelar: {e}")
+        return {"status": "error", "mensaje": str(e)}
+
+# ============================================================
+# 🎾 API: CREAR PARTIDO ABIERTO COMUNITARIO (1/4 JUGADORES)
+# ============================================================
+@app.post("/api/match/open/create")
+async def crear_partido_abierto_toh(request: Request, db: Session = Depends(get_db)):
+    try:
+        data = await request.json()
+        try:
+            creator_id = int(data.get("creator_id"))
+            club_id = int(data.get("club_id", 1))
+        except (ValueError, TypeError):
+            return {"status": "error", "mensaje": "Datos de identificación incompletos."}
+
+        fecha_iso = data.get("fecha_iso")
+        
+        # 1. Verificar si el creador existe
+        creador = db.query(Player).filter(Player.id == creator_id).first()
+        if not creador:
+            return {"status": "error", "mensaje": "Perfil de jugador no localizado."}
+
+        # 2. Exclusividad de combate: evitar que un jugador cree múltiples partidos simultáneos
+        partido_activo = db.query(Match).filter(
+            Match.club_id == club_id,
+            Match.is_finished == False,
+            or_(
+                Match.player_1_id == creator_id,
+                Match.player_2_id == creator_id,
+                Match.player_3_id == creator_id,
+                Match.player_4_id == creator_id
+            )
+        ).first()
+
+        if partido_activo:
+            return {"status": "warning", "mensaje": "⚠️ Ya tienes una batalla o partido activo en la Arena."}
+
+        # 3. Determinar zona horaria y coordenada temporal
+        club = db.query(Club).filter(Club.id == club_id).first()
+        tz_name = club.settings.get("timezone", "America/Bogota") if club and club.settings else "America/Bogota"
+        tz = pytz.timezone(tz_name)
+
+        try:
+            if fecha_iso:
+                if "Z" in fecha_iso: fecha_iso = fecha_iso.replace("Z", "")
+                fecha_naive = datetime.fromisoformat(fecha_iso)
+                fecha_obj = tz.localize(fecha_naive)
+            else:
+                fecha_obj = datetime.now(tz)
+        except Exception:
+            fecha_obj = datetime.now(tz)
+
+        # 4. Crear el Partido Abierto: Creador ocupa Silla 1, y las otras 3 quedan en None
+        nuevo_partido = Match(
+            player_1_id=creator_id,
+            player_2_id=None,
+            player_3_id=None,
+            player_4_id=None,
+            club_id=club_id,
+            score="VS",
+            is_finished=False,
+            is_confirmed=False,
+            scheduled_time=fecha_obj,
+            audit_log="open_match" # ✅ Marca distintiva de Partido Abierto
+        )
+
+        db.add(nuevo_partido)
+        db.commit()
+        db.refresh(nuevo_partido)
+
+        print(f"\n{C_EXE}[PARTIDO ABIERTO 🎾] -> {creador.name} ha fundado una partida abierta (ID {nuevo_partido.id}) con 3 sillas libres.{C_END}")
+        await manager.broadcast("update", club_id)
+
+        return {
+            "status": "success",
+            "mensaje": "¡Partido abierto publicado con éxito! 3 sillas libres disponibles para la comunidad.",
+            "match_id": nuevo_partido.id
+        }
+
+    except Exception as e:
+        print(f"❌ Error creando partido abierto: {e}")
         return {"status": "error", "mensaje": str(e)}
 
 # ============================================================
