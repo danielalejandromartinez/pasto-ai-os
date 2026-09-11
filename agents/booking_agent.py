@@ -53,16 +53,20 @@ class BookingAgent:
         if p1.id == p2.id:
             return {"status": "error", "reply": "Un guerrero no puede desafiarse a sí mismo."}
 
-        # 3. Coordenada Temporal
+        # 3. Coordenada Temporal (Blindada contra Aware y Naive Datetimes)
         fecha_obj = None
         try:
             if fecha_iso:
                 if "Z" in fecha_iso: fecha_iso = fecha_iso.replace("Z", "")
-                fecha_naive = datetime.fromisoformat(fecha_iso)
-                fecha_obj = tz.localize(fecha_naive)
+                dt = datetime.fromisoformat(fecha_iso)
+                if dt.tzinfo is None:
+                    fecha_obj = tz.localize(dt)
+                else:
+                    fecha_obj = dt.astimezone(tz)
             else:
                 fecha_obj = ahora_local
-        except:
+        except Exception as e:
+            print(f"❌ Error parseando fecha_iso en BookingAgent: {e}")
             return {"status": "error", "reply": "Coordenada temporal inválida."}
 
         # 4. Regla de Oro: Exclusividad de Combate
@@ -134,7 +138,7 @@ class BookingAgent:
         settings = club.settings or {}
         booking_config = settings.get("booking", {})
         
-        courts_count = booking_config.get("courts_count", 6)
+        courts_count = booking_config.get("courts_count", 3) # ✅ Por defecto 3 canchas oficiales (Pasto Padel Club)
         open_time = booking_config.get("open_time", 6)
         close_time = booking_config.get("close_time", 22)
         slot_minutes = booking_config.get("slot_minutes", 90) # Padel suele ser de 90 min
