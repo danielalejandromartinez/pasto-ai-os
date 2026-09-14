@@ -135,15 +135,10 @@
                         <span id="badge-status-{{ reto.id }}" class="relative z-10 text-[8px] digital-font mb-2 uppercase tracking-widest text-yellow-500">BUSCANDO JUGADORES ({{ ocupados }}/4)</span>
                     {% endif %}
                     
-                    <!-- 🕒 COORDENADA TEMPORAL Y CANCHA DEL RETO -->
-                    <div class="relative z-10 flex flex-wrap items-center justify-center gap-2 mb-5 px-4 py-1.5 bg-brand/10 border border-brand/30 rounded-full shadow-[0_0_10px_rgba(0,242,255,0.15)]">
-                        <span class="text-[9px] digital-font text-brand font-bold tracking-widest uppercase">
-                            <i class="fa-regular fa-calendar-days mr-1"></i> {{ reto.scheduled_time.strftime('%d/%m/%Y - %I:%M %p') if reto.scheduled_time else 'HORA POR DEFINIR' }}
-                        </span>
-                        <span class="text-[9px] digital-font text-white/40 font-bold">|</span>
-                        <span class="text-[9px] digital-font text-white font-bold tracking-widest uppercase">
-                            <i class="fa-solid fa-table-tennis-paddle-ball mr-1 text-brand"></i> CANCHA {{ reto.court_number or 1 }}
-                        </span>
+                    <!-- 🕒 COORDENADA TEMPORAL DEL RETO (FECHA Y HORA) -->
+                    <div class="relative z-10 flex items-center gap-2 mb-5 px-3 py-1 bg-white/5 border border-white/10 rounded-full">
+                        <i class="fa-regular fa-calendar-days text-[10px] text-brand"></i>
+                        <span class="text-[9px] digital-font text-white/90 tracking-widest uppercase">{{ reto.scheduled_time.strftime('%d/%m/%Y - %I:%M %p') if reto.scheduled_time else 'HORA POR DEFINIR' }}</span>
                     </div>
 
                     <div class="relative z-10 flex justify-between w-full items-center mb-6">
@@ -288,13 +283,13 @@
                     <button onclick="closeAllDrawers()" class="text-white/20 hover:text-white text-3xl">&times;</button>
                 </div>
 
-                <!-- Selector de Día Urgente con Fecha Exacta de Colombia -->
+                <!-- Selector de Día Urgente: HOY vs MAÑANA -->
                 <div class="grid grid-cols-2 gap-3 mb-4">
                     <button id="btn-dia-hoy" onclick="seleccionarDiaReserva('hoy')" class="py-3 px-4 rounded-xl border border-brand bg-brand/20 text-brand font-black digital-font text-xs uppercase tracking-widest transition-all">
-                        📅 CARGANDO...
+                        📅 HOY
                     </button>
                     <button id="btn-dia-manana" onclick="seleccionarDiaReserva('manana')" class="py-3 px-4 rounded-xl border border-white/10 bg-white/5 text-white/50 font-black digital-font text-xs uppercase tracking-widest transition-all hover:text-white hover:border-white/30">
-                        ⚡ CARGANDO...
+                        ⚡ MAÑANA
                     </button>
                 </div>
 
@@ -543,7 +538,7 @@
                     btnLeaveB.classList.remove('hidden');
                 }
 
-                // Creador (P1) puede cancelar el duelo si es duelo directo
+                // Creador (P1) puede cancelar el duelo
                 const btnCancel = card.querySelector(`.btn-cancel-duel-${matchId}`);
                 if (btnCancel && miIdLocal === p1) {
                     btnCancel.classList.remove('hidden');
@@ -611,26 +606,10 @@
         }
 
         // ============================================================
-        // 🏟️ MOTOR DE DISPONIBILIDAD CON CALENDARIO EXACTO DE COLOMBIA
+        // 🏟️ MOTOR DE DISPONIBILIDAD Y REGLA DE LOS 3 CLICS (THE ARENA 48H)
         // ============================================================
         let slotSeleccionado = null; // { horaStr, canchaNum, horaIso }
         let diaSeleccionado = 'hoy';
-
-        function obtenerFechaLocalStr(diasExtra = 0) {
-            const d = new Date();
-            d.setDate(d.getDate() + diasExtra);
-            const anio = d.getFullYear();
-            const mes = String(d.getMonth() + 1).padStart(2, '0');
-            const dia = String(d.getDate()).padStart(2, '0');
-            return `${anio}-${mes}-${dia}`;
-        }
-
-        function obtenerTextoFechaAmigable(diasExtra = 0) {
-            const meses = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
-            const d = new Date();
-            d.setDate(d.getDate() + diasExtra);
-            return `${d.getDate()} de ${meses[d.getMonth()]}`;
-        }
 
         function toggleBooking(abrir) {
             const miIdLocal = parseInt(localStorage.getItem('pasto_player_id')) || 0;
@@ -644,11 +623,6 @@
             const overlay = document.getElementById('global-overlay');
 
             if (abrir) {
-                const btnHoy = document.getElementById('btn-dia-hoy');
-                const btnManana = document.getElementById('btn-dia-manana');
-                if (btnHoy) btnHoy.innerHTML = `📅 HOY ${obtenerTextoFechaAmigable(0)}`;
-                if (btnManana) btnManana.innerHTML = `⚡ MAÑANA ${obtenerTextoFechaAmigable(1)}`;
-
                 drawer.classList.add('drawer-open');
                 overlay.style.display = 'block';
                 seleccionarDiaReserva('hoy');
@@ -663,23 +637,24 @@
             const btnManana = document.getElementById('btn-dia-manana');
             cerrarActionSheet();
 
-            let fechaStr = "";
+            const hoyObj = new Date();
+            let targetDateObj = new Date();
             if (dia === 'manana') {
-                fechaStr = obtenerFechaLocalStr(1);
+                targetDateObj.setDate(hoyObj.getDate() + 1);
                 btnManana.className = "py-3 px-4 rounded-xl border border-brand bg-brand/20 text-brand font-black digital-font text-xs uppercase tracking-widest transition-all";
                 btnHoy.className = "py-3 px-4 rounded-xl border border-white/10 bg-white/5 text-white/50 font-black digital-font text-xs uppercase tracking-widest transition-all hover:text-white hover:border-white/30";
             } else {
-                fechaStr = obtenerFechaLocalStr(0);
                 btnHoy.className = "py-3 px-4 rounded-xl border border-brand bg-brand/20 text-brand font-black digital-font text-xs uppercase tracking-widest transition-all";
                 btnManana.className = "py-3 px-4 rounded-xl border border-white/10 bg-white/5 text-white/50 font-black digital-font text-xs uppercase tracking-widest transition-all hover:text-white hover:border-white/30";
             }
 
+            const fechaStr = targetDateObj.toISOString().split('T')[0];
             await cargarGridCanchas(fechaStr);
         }
 
         async function cargarGridCanchas(fechaStr) {
             const container = document.getElementById('grid-canchas-dinamico');
-            container.innerHTML = `<div class="flex items-center justify-center py-12 text-white/30 digital-font text-xs"><i class="fa-solid fa-spinner fa-spin mr-2"></i> Consultando disponibilidad...</div>`;
+            container.innerHTML = `<div class="flex items-center justify-center py-12 text-white/30 digital-font text-xs"><i class="fa-solid fa-spinner fa-spin mr-2"></i> Consultando disponibilidad de canchas...</div>`;
 
             try {
                 const res = await fetch(`/api/booking/grid/${clubId}?fecha=${fechaStr}`);
@@ -733,6 +708,7 @@
         function abrirActionSheetSlot(horaStr, canchaNum, horaIso, btnElement) {
             slotSeleccionado = { horaStr, canchaNum, horaIso };
 
+            // Resaltado visual de la celda verde tocada
             document.querySelectorAll('.slot-court-btn').forEach(b => {
                 b.classList.remove('ring-2', 'ring-brand', 'border-brand', 'bg-brand/20');
             });
@@ -740,10 +716,10 @@
                 btnElement.classList.add('ring-2', 'ring-brand', 'border-brand', 'bg-brand/20');
             }
 
-            const textoDia = diaSeleccionado === 'manana' ? obtenerTextoFechaAmigable(1) : obtenerTextoFechaAmigable(0);
             document.getElementById('slot-cancha-badge').innerText = `CANCHA ${canchaNum}`;
-            document.getElementById('slot-hora-badge').innerText = `${horaStr} • Bloque 90 min (${textoDia})`;
+            document.getElementById('slot-hora-badge').innerText = `${horaStr} • Bloque 90 min (${diaSeleccionado.toUpperCase()})`;
             
+            // Ocultar selector de rival por si estaba abierto
             const picker = document.getElementById('slot-rival-picker');
             if (picker) picker.classList.add('hidden');
 
@@ -765,6 +741,7 @@
             if (picker) picker.classList.toggle('hidden');
         }
 
+        // 1-Clic: Publicar Partido Abierto desde el Slot
         async function crearPartidoAbiertoDesdeGrid() {
             if (!slotSeleccionado) return;
             const miIdLocal = parseInt(localStorage.getItem('pasto_player_id')) || 0;
@@ -792,6 +769,7 @@
             }
         }
 
+        // 1-Clic: Reservar Cancha Privada desde el Slot
         async function reservarAmistosoDesdeGrid() {
             if (!slotSeleccionado) return;
             const miIdLocal = parseInt(localStorage.getItem('pasto_player_id')) || 0;
@@ -819,6 +797,7 @@
             }
         }
 
+        // 1-Clic: Lanzar Reto Directo desde el Slot
         async function enviarRetoDesdeSlot() {
             if (!slotSeleccionado) return;
             const miIdLocal = parseInt(localStorage.getItem('pasto_player_id')) || 0;
@@ -913,6 +892,286 @@
                 alert(data.mensaje);
                 closeAllDrawers();
                 location.reload();
+            } else {
+                alert("Error: " + data.mensaje);
+            }
+        }
+
+        function openRegistration() {
+            document.getElementById('registration-drawer').classList.add('drawer-open');
+            document.getElementById('global-overlay').style.display = 'block';
+        }
+
+        function switchIdentityTab(tab) {
+            const tabLogin = document.getElementById('tab-login');
+            const tabReg = document.getElementById('tab-register');
+            const formLogin = document.getElementById('form-login');
+            const formReg = document.getElementById('form-register');
+
+            if (tab === 'login') {
+                tabLogin.className = "text-2xl font-black sport-font text-brand border-b-2 border-brand pb-2";
+                tabReg.className = "text-2xl font-black sport-font text-white/30 hover:text-white pb-2";
+                formLogin.classList.remove('hidden');
+                formReg.classList.add('hidden');
+            } else {
+                tabReg.className = "text-2xl font-black sport-font text-brand border-b-2 border-brand pb-2";
+                tabLogin.className = "text-2xl font-black sport-font text-white/30 hover:text-white pb-2";
+                formReg.classList.remove('hidden');
+                formLogin.classList.add('hidden');
+            }
+        }
+
+        async function ejecutarLogin() {
+            const username = document.getElementById('login-username').value;
+            const pin = document.getElementById('login-pin').value;
+
+            if (!username || !pin) {
+                alert("Por favor completa los campos.");
+                return;
+            }
+
+            const res = await fetch('/api/player/login', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ username: username, pin: pin })
+            });
+
+            const data = await res.json();
+            if (data.status === 'success') {
+                alert(data.mensaje);
+                localStorage.setItem('pasto_player_id', data.player_id);
+                localStorage.setItem('pasto_player_name', data.nombre);
+                localStorage.setItem('pasto_player_category', data.categoria);
+                
+                closeAllDrawers();
+                verificarSesion();
+                location.reload();
+            } else {
+                alert(data.mensaje);
+            }
+        }
+
+        function cerrarSesion() {
+            if (!confirm("¿Deseas cerrar sesión o cambiar de jugador?")) return;
+            localStorage.clear();
+            location.reload();
+        }
+
+        async function enviarRegistro() {
+            const nombre = document.getElementById('reg-nombre').value;
+            const username = document.getElementById('reg-username').value;
+            const pin = document.getElementById('reg-pin').value;
+            const categoria = document.getElementById('reg-categoria').value;
+
+            if (!nombre || !username || !pin) {
+                alert("Por favor completa los campos obligatorios.");
+                return;
+            }
+
+            if (pin.length !== 4 || isNaN(pin)) {
+                alert("El PIN debe ser exactamente de 4 números.");
+                return;
+            }
+
+            const res = await fetch('/api/player/register/request', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    nombre: nombre,
+                    username: username,
+                    pin: pin,
+                    categoria: categoria,
+                    club_id: clubId
+                })
+            });
+
+            const data = await res.json();
+            if (data.status === 'success') {
+                alert("¡Solicitud enviada! 🚀 El director de Pasto Padel Club verificará tu nivel. Te notificaremos una vez habilitado.");
+                localStorage.setItem('pasto_player_id', data.player_id);
+                closeAllDrawers();
+            } else {
+                alert("Error: " + data.mensaje);
+            }
+        }
+
+        let rivalSeleccionadoId = null;
+
+        async function openDossier(playerId) {
+            rivalSeleccionadoId = playerId;
+            const dossier = document.getElementById('tactical-dossier');
+            const overlay = document.getElementById('global-overlay');
+
+            const miIdLocal = parseInt(localStorage.getItem('pasto_player_id')) || 0;
+
+            const res = await fetch(`/api/player/${playerId}/stats`);
+            const data = await res.json();
+
+            if (data.status === 'success') {
+                document.getElementById('dos-name').innerText = data.perfil.nombre;
+                
+                let infoBox = document.getElementById('dos-info-box');
+                if (!infoBox) {
+                    infoBox = document.getElementById('dos-info-box') || document.createElement('div');
+                    infoBox.id = 'dos-info-box';
+                    infoBox.className = 'my-6 p-6 rounded-2xl bg-white/5 border border-white/10 flex flex-col gap-3';
+                    dossier.querySelector('.flex-col').insertBefore(infoBox, document.getElementById('btn-duel-action'));
+                }
+                
+                infoBox.innerHTML = `
+                    <div class="flex justify-between">
+                        <span class="text-white/40 font-bold uppercase text-[10px]">Rango Prestigio</span>
+                        <span class="text-brand font-black digital-font text-sm">${data.perfil.rango}</span>
+                    </div>
+                    <div class="flex justify-between border-t border-white/5 pt-3">
+                        <span class="text-white/40 font-bold uppercase text-[10px]">Victorias</span>
+                        <span class="text-green-500 font-bold digital-font">${data.perfil.wins}</span>
+                    </div>
+                    <div class="flex justify-between border-t border-white/5 pt-3">
+                        <span class="text-white/40 font-bold uppercase text-[10px]">Derrotas</span>
+                        <span class="text-red-500 font-bold digital-font">${data.perfil.losses}</span>
+                    </div>
+                `;
+
+                const btnAccion = document.getElementById('btn-duel-action');
+                const scheduleBox = document.getElementById('duel-schedule-box');
+
+                if (playerId === miIdLocal) {
+                    if (scheduleBox) scheduleBox.classList.add('hidden');
+                    btnAccion.innerText = "SUBIR MI FOTO / SELFIE 📸";
+                    btnAccion.style.borderColor = "#ffcc00"; 
+                    btnAccion.style.color = "#ffcc00";
+                    btnAccion.onclick = abrirSelectorFoto;
+                } else {
+                    if (scheduleBox) {
+                        scheduleBox.classList.remove('hidden');
+                        const inputDate = document.getElementById('duel-date');
+                        const inputTime = document.getElementById('duel-time');
+                        const hoy = new Date().toISOString().split('T')[0];
+                        inputDate.min = hoy;
+                        if (!inputDate.value) inputDate.value = hoy;
+                        if (!inputTime.value) inputTime.value = "18:00";
+                    }
+                    btnAccion.innerText = "LANZAR DESAFÍO DIRECTO";
+                    btnAccion.style.borderColor = "var(--brand-color)";
+                    btnAccion.style.color = "#000";
+                    btnAccion.onclick = lanzarDuelo;
+                }
+
+                dossier.classList.add('drawer-open');
+                overlay.style.display = 'block';
+            } else {
+                alert("Error al sincronizar el expediente táctico.");
+            }
+        }
+
+        function abrirSelectorFoto() {
+            document.getElementById('pwa-photo-input').click();
+        }
+
+        async function subirFotoPerfil(input) {
+            if (!input.files || input.files.length === 0) return;
+            
+            const file = input.files[0];
+            const formData = new FormData();
+            
+            const miIdLocal = parseInt(localStorage.getItem('pasto_player_id')) || 0;
+            formData.append("player_id", miIdLocal);
+            formData.append("foto", file);
+
+            const res = await fetch('/api/player/upload-photo', {
+                method: 'POST',
+                body: formData
+            });
+
+            const data = await res.json();
+            if (data.status === 'success') {
+                alert("¡Felicidades! Tu selfie ha sido activada en el Muro de la Fama.");
+                closeAllDrawers();
+                location.reload();
+            } else {
+                alert("Error: " + data.mensaje);
+            }
+        }
+
+        async function unirseDuelo(matchId, team, p1Id, p3Id) {
+            const miIdLocal = parseInt(localStorage.getItem('pasto_player_id')) || 0;
+
+            if (miIdLocal === 0) {
+                alert("Por favor inicia sesión para poder unirte a un partido.");
+                openRegistration();
+                return;
+            }
+
+            // 🛡️ ESCUDO INSTANTÁNEO EN EL CELULAR:
+            // Regla 1: Un jugador no puede ser compañero de sí mismo
+            if (team === 'A' && miIdLocal === p1Id) {
+                alert("⚠️ Ya formas parte de esta batalla como capitán(a) del Equipo A. No puedes ser tu propia pareja.");
+                return;
+            }
+
+            if (team === 'B' && miIdLocal === p3Id) {
+                alert("⚠️ Ya eres el rival titular (Equipo B). No puedes ser tu propia pareja.");
+                return;
+            }
+
+            // Regla 2: El retador no puede unirse al equipo rival y viceversa
+            if (team === 'B' && miIdLocal === p1Id) {
+                alert("⚠️ Ya eres el retador en el Equipo A. ¡No puedes jugar contra ti mismo!");
+                return;
+            }
+
+            if (team === 'A' && miIdLocal === p3Id) {
+                alert("⚠️ Ya estás asignado como rival en el Equipo B. ¡No puedes jugar contra ti mismo!");
+                return;
+            }
+
+            if (!confirm("¿Deseas ocupar esta silla libre en la Arena?")) return;
+
+            const res = await fetch(`/api/challenge/join/${matchId}`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ player_id: miIdLocal, team: team })
+            });
+
+            const data = await res.json();
+            if (data.status === 'success') {
+                alert(data.mensaje);
+                location.reload();
+            } else {
+                alert("Error: " + data.mensaje);
+            }
+        }
+
+        async function aceptarDuelo(matchId, p3Id) {
+            const miIdLocal = parseInt(localStorage.getItem('pasto_player_id')) || 0;
+
+            if (miIdLocal !== p3Id) {
+                alert("Solo el rival retado puede confirmar esta batalla en la Arena.");
+                return;
+            }
+
+            if (!confirm("¿Aceptas este desafío de Padel?")) return;
+
+            const res = await fetch(`/api/challenge/accept/${matchId}`, {
+                method: 'POST'
+            });
+
+            const data = await res.json();
+            if (data.status === 'success') {
+                alert(data.mensaje);
+                
+                const badge = document.getElementById(`badge-status-${matchId}`);
+                if (badge) {
+                    badge.innerText = "DUELO CONFIRMADO";
+                    badge.style.color = "#00ff88"; 
+                }
+                
+                const actions = document.getElementById(`handshake-actions-${matchId}`);
+                if (actions) actions.style.display = 'none';
+                
+                const goBoardBtn = document.getElementById(`go-board-${matchId}`);
+                if (goBoardBtn) goBoardBtn.style.display = 'block';
             } else {
                 alert("Error: " + data.mensaje);
             }
